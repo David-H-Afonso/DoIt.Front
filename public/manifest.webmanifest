@@ -7,7 +7,7 @@
   "theme_color": "#111827",
   "icons": [
     {
-      "src": "./doit-mark.svg",
+      "src": "./vite.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
