@@ -18,6 +18,11 @@ export const OccurrenceService = {
 			method: 'POST',
 			accessToken,
 		}),
+	completeEarly: (accessToken: string, occurrenceId: string) =>
+		apiRequest<OccurrenceActionResponse>(environment.apiRoutes.occurrences.completeEarly(occurrenceId), {
+			method: 'POST',
+			accessToken,
+		}),
 	undo: (accessToken: string, occurrenceId: string) =>
 		apiRequest<OccurrenceActionResponse>(environment.apiRoutes.occurrences.undo(occurrenceId), {
 			method: 'POST',

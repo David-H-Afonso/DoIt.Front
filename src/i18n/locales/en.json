@@ -23,6 +23,7 @@
     "create": "Create",
     "loading": "Loading",
     "save": "Save",
+    "close": "Close",
     "undo": "Undo"
   },
   "navigation": {
@@ -31,6 +32,8 @@
     "zones": "Zones",
     "create": "Create",
     "review": "Review",
+    "statistics": "Statistics",
+    "calendar": "Calendar",
     "profile": "Profile"
   },
   "now": {
@@ -51,6 +54,12 @@
     "availableAt": "Available at",
     "overdueSince": "Overdue since",
     "recommendedAt": "Recommended at",
+    "upcomingTitle": "Upcoming tasks",
+    "upcomingDescription": "You can complete a recurring task before its scheduled day",
+    "completeEarly": "Complete early",
+    "completedEarly": "Task completed early",
+    "doneEarly": "Completed before its day",
+    "scheduledFor": "Scheduled for",
     "sections": {
       "overdue": "Overdue",
       "available": "Available now",
@@ -111,6 +120,9 @@
     "suffix": "Suffix",
     "save": "Save config",
     "runNow": "Run now",
+    "fullTitle": "Full backup",
+    "fullDescription": "Save a SQLite copy of all tasks, history, statistics, users, and configuration.",
+    "fullRunNow": "Create full backup",
     "saved": "Configuration saved",
     "started": "Backup completed",
     "loadError": "Could not load backups",
@@ -122,6 +134,44 @@
       "success": "Success",
       "failed": "Failed"
     }
+  },
+  "calendar": {
+    "kicker": "Personal agenda",
+    "title": "Calendar",
+    "subtitle": "Appointments, launches, and reminders in one place.",
+    "newEvent": "New event",
+    "editEvent": "Edit event",
+    "eventDetails": "Event details",
+    "eventTitle": "Title",
+    "description": "Description",
+    "zone": "Zone",
+    "noZone": "No zone",
+    "starts": "Starts",
+    "ends": "Ends",
+    "allDay": "All day",
+    "reminders": "Reminders",
+    "addReminder": "Add",
+    "removeReminder": "Remove reminder",
+    "minutesBefore": "minutes before",
+    "hoursBefore": "hours before",
+    "daysBefore": "days before",
+    "enabled": "Enabled",
+    "save": "Save event",
+    "delete": "Delete",
+    "selectEvent": "Choose a date",
+    "selectEventDescription": "Select a day or create an event to get started.",
+    "monthlyReport": "Monthly summary",
+    "activeEvents": "active",
+    "totalEvents": "events",
+    "markedReminders": "marked",
+    "remindersDue": "Due reminders",
+    "markDone": "Mark",
+    "invalidEvent": "Check the event title and dates.",
+    "saveError": "The event could not be saved.",
+    "deleteError": "The event could not be deleted.",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "weekdays": { "mon": "Mon", "tue": "Tue", "wed": "Wed", "thu": "Thu", "fri": "Fri", "sat": "Sat", "sun": "Sun" }
   },
   "quickCreate": {
     "title": "New task",
@@ -142,6 +192,15 @@
     "weekly": "Weekly",
     "xPerWeek": "X per week",
     "everyNDaysShort": "Every X days",
+    "monthlyOrdinal": "Monthly",
+    "weekOfMonth": "Week of month",
+    "selectWeekOfMonth": "Select week",
+    "ordinal": {
+      "1": "First",
+      "2": "Second",
+      "3": "Third",
+      "4": "Fourth"
+    },
     "weekday": "Weekday",
     "selectWeekday": "Select day",
     "timesPerWeek": "Times per week",
@@ -149,7 +208,6 @@
     "availableFrom": "Available from",
     "availableUntil": "Available until",
     "recommendedTime": "Recommended time",
-    "timeHelp": "Times are saved with this zone and adapt when you travel:",
     "createZone": "New quick zone",
     "zoneName": "Zone name",
     "assignmentMode": "Assignment",
@@ -182,6 +240,43 @@
     ,"selectDate": "Select date"
     ,"created": "Created"
     ,"completed": "Completed"
+  },
+  "statistics": {
+    "title": "Statistics",
+    "kicker": "Completion history",
+    "groupBy": "Group by",
+    "period": {
+      "day": "Day",
+      "week": "Week",
+      "month": "Month"
+    },
+    "timeline": "Timeline",
+    "byTask": "By task",
+    "completed": "Completed",
+    "early": "Early",
+    "late": "Late",
+    "overdue": "Overdue",
+    "missed": "Missed",
+    "rate": "Completion",
+    "noZone": "No zone",
+    "timesCompleted": "times completed",
+    "noCompletions": "No completions",
+    "viewDetails": "View occurrence details",
+    "timing": {
+      "Done": "Completed",
+      "Early": "Early",
+      "OnTime": "On time",
+      "Late": "Late",
+      "Overdue": "Overdue",
+      "Missed": "Missed",
+      "NotApplicable": "Not applicable",
+      "Pending": "Pending"
+    },
+    "status": {
+      "Missed": "Missed",
+      "NotApplicable": "Not applicable",
+      "Pending": "Pending"
+    }
   },
   "theme": {
     "title": "Theme",

@@ -7,6 +7,7 @@ type NowState = {
 	scope: NowScope
 	progress: NowProgress
 	zones: NowZone[]
+	upcoming: NowResponse['upcoming']
 	loading: boolean
 	error: string | null
 	lastLoadedAt: string | null
@@ -25,6 +26,7 @@ const initialState: NowState = {
 	scope: 'me',
 	progress: emptyProgress,
 	zones: [],
+	upcoming: [],
 	loading: false,
 	error: null,
 	lastLoadedAt: null,
@@ -52,6 +54,7 @@ const applyNow = (state: NowState, payload: NowResponse) => {
 	state.scope = payload.scope
 	state.progress = payload.progress
 	state.zones = payload.zones
+	state.upcoming = payload.upcoming ?? []
 	state.error = null
 	state.lastLoadedAt = new Date().toISOString()
 }

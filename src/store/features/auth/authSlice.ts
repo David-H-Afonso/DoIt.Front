@@ -89,7 +89,13 @@ export const authSlice = createSlice({
 			.addCase(refreshSession.fulfilled, (state, action) => {
 				applyAuth(state, action.payload as AuthResponse)
 			})
-			.addCase(refreshSession.rejected, () => initialState)
+			.addCase(refreshSession.rejected, (state) => {
+				state.accessToken = null
+				state.refreshToken = null
+				state.accessTokenExpiresAt = null
+				state.refreshTokenExpiresAt = null
+				state.user = null
+			})
 	},
 })
 

@@ -23,6 +23,7 @@
     "create": "Crear",
     "loading": "Cargando",
     "save": "Guardar",
+    "close": "Cerrar",
     "undo": "Deshacer"
   },
   "navigation": {
@@ -31,6 +32,8 @@
     "zones": "Zonas",
     "create": "Crear",
     "review": "Revisión",
+    "statistics": "Estadísticas",
+    "calendar": "Calendario",
     "profile": "Perfil"
   },
   "now": {
@@ -51,6 +54,12 @@
     "availableAt": "Disponible a las",
     "overdueSince": "Vencida desde",
     "recommendedAt": "Recomendada a las",
+    "upcomingTitle": "Próximas tareas",
+    "upcomingDescription": "Puedes hacer una tarea frecuente antes de su día",
+    "completeEarly": "Completar antes",
+    "completedEarly": "Tarea completada antes",
+    "doneEarly": "Hecha antes de su día",
+    "scheduledFor": "Programada para",
     "sections": {
       "overdue": "Vencidas",
       "available": "Disponibles ahora",
@@ -111,6 +120,9 @@
     "suffix": "Sufijo",
     "save": "Guardar config",
     "runNow": "Ejecutar ahora",
+    "fullTitle": "Backup completo",
+    "fullDescription": "Guarda una copia SQLite de todas las tareas, historial, estadísticas, usuarios y configuración.",
+    "fullRunNow": "Crear backup completo",
     "saved": "Configuración guardada",
     "started": "Backup ejecutado",
     "loadError": "No se pudieron cargar los backups",
@@ -122,6 +134,44 @@
       "success": "Correcto",
       "failed": "Fallido"
     }
+  },
+  "calendar": {
+    "kicker": "Agenda personal",
+    "title": "Calendario",
+    "subtitle": "Citas, lanzamientos y recordatorios en un solo lugar.",
+    "newEvent": "Nuevo evento",
+    "editEvent": "Editar evento",
+    "eventDetails": "Detalles del evento",
+    "eventTitle": "Título",
+    "description": "Descripción",
+    "zone": "Zona",
+    "noZone": "Sin zona",
+    "starts": "Empieza",
+    "ends": "Termina",
+    "allDay": "Todo el día",
+    "reminders": "Recordatorios",
+    "addReminder": "Añadir",
+    "removeReminder": "Quitar recordatorio",
+    "minutesBefore": "minutos antes",
+    "hoursBefore": "horas antes",
+    "daysBefore": "días antes",
+    "enabled": "Activo",
+    "save": "Guardar evento",
+    "delete": "Eliminar",
+    "selectEvent": "Elige una fecha",
+    "selectEventDescription": "Selecciona un día o crea un evento para empezar.",
+    "monthlyReport": "Resumen del mes",
+    "activeEvents": "activos",
+    "totalEvents": "eventos",
+    "markedReminders": "marcados",
+    "remindersDue": "Recordatorios pendientes",
+    "markDone": "Marcar",
+    "invalidEvent": "Revisa el título y las fechas del evento.",
+    "saveError": "No se pudo guardar el evento.",
+    "deleteError": "No se pudo eliminar el evento.",
+    "previousMonth": "Mes anterior",
+    "nextMonth": "Mes siguiente",
+    "weekdays": { "mon": "Lun", "tue": "Mar", "wed": "Mié", "thu": "Jue", "fri": "Vie", "sat": "Sáb", "sun": "Dom" }
   },
   "quickCreate": {
     "title": "Nueva tarea",
@@ -142,6 +192,15 @@
     "weekly": "Semanal",
     "xPerWeek": "X por semana",
     "everyNDaysShort": "Cada X días",
+    "monthlyOrdinal": "Mensual",
+    "weekOfMonth": "Semana del mes",
+    "selectWeekOfMonth": "Selecciona semana",
+    "ordinal": {
+      "1": "Primer",
+      "2": "Segundo",
+      "3": "Tercer",
+      "4": "Cuarto"
+    },
     "weekday": "Día de semana",
     "selectWeekday": "Selecciona día",
     "timesPerWeek": "Veces por semana",
@@ -149,7 +208,6 @@
     "availableFrom": "Disponible desde",
     "availableUntil": "Disponible hasta",
     "recommendedTime": "Hora recomendada",
-    "timeHelp": "Las horas se guardan con esta zona y se adaptan al viajar:",
     "createZone": "Nueva zona rápida",
     "zoneName": "Nombre de zona",
     "assignmentMode": "Asignación",
@@ -182,6 +240,43 @@
     ,"selectDate": "Seleccionar fecha"
     ,"created": "Creada"
     ,"completed": "Completada"
+  },
+  "statistics": {
+    "title": "Estadísticas",
+    "kicker": "Historial de cumplimiento",
+    "groupBy": "Agrupar por",
+    "period": {
+      "day": "Día",
+      "week": "Semana",
+      "month": "Mes"
+    },
+    "timeline": "Evolución",
+    "byTask": "Por tarea",
+    "completed": "Cumplidas",
+    "early": "Anticipadas",
+    "late": "Tarde",
+    "overdue": "Vencidas",
+    "missed": "No hechas",
+    "rate": "Cumplimiento",
+    "noZone": "Sin zona",
+    "timesCompleted": "veces cumplida",
+    "noCompletions": "Sin cumplimientos",
+    "viewDetails": "Ver detalle de ocurrencias",
+    "timing": {
+      "Done": "Cumplida",
+      "Early": "Anticipada",
+      "OnTime": "A tiempo",
+      "Late": "Tarde",
+      "Overdue": "Vencida",
+      "Missed": "No hecha",
+      "NotApplicable": "No aplica",
+      "Pending": "Pendiente"
+    },
+    "status": {
+      "Missed": "No hecha",
+      "NotApplicable": "No aplica",
+      "Pending": "Pendiente"
+    }
   },
   "theme": {
     "title": "Tema",

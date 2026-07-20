@@ -17,13 +17,13 @@ type RequestOptions = {
 	accessToken?: string | null
 }
 
-let unauthorizedHandler: (() => void) | null = null
+let unauthorizedHandler: (() => Promise<boolean>) | null = null
 
-export function setUnauthorizedHandler(handler: (() => void) | null) {
+export function setUnauthorizedHandler(handler: (() => Promise<boolean>) | null) {
 	unauthorizedHandler = handler
 }
 
-export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+export async function apiRequest<T>(path: string, options: RequestOptions = {}, allowRefresh = true): Promise<T> {
 	const headers: Record<string, string> = {
 		Accept: 'application/json',
 	}
@@ -59,8 +59,11 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 	const payload = contentType.includes('application/json') ? await response.json() : await response.text()
 
 	if (!response.ok) {
-		if (response.status === 401 && options.accessToken) {
-			unauthorizedHandler?.()
+		if (response.status === 401 && options.accessToken && allowRefresh && unauthorizedHandler) {
+			const refreshed = await unauthorizedHandler()
+			if (refreshed) {
+				return apiRequest(path, options, false)
+			}
 		}
 
 		const message = typeof payload === 'string' ? payload : payload.message || 'Request failed'

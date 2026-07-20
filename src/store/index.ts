@@ -2,7 +2,7 @@ import { configureStore } from '@reduxjs/toolkit'
 import { persistStore, persistReducer } from 'redux-persist'
 import { combineReducers } from '@reduxjs/toolkit'
 import storage from 'redux-persist/lib/storage'
-import { authReducer, logoutLocal } from './features/auth/authSlice'
+import { authReducer, logoutLocal, refreshSession } from './features/auth/authSlice'
 import { nowReducer } from './features/now/nowSlice'
 import { reviewReducer } from './features/review/reviewSlice'
 import { tasksReducer } from './features/tasks/tasksSlice'
@@ -61,9 +61,23 @@ export const store = configureStore({
 
 export const persistor = persistStore(store)
 
-setUnauthorizedHandler(() => {
-	store.dispatch(logoutLocal())
-	void persistor.flush()
+let refreshPromise: Promise<unknown> | null = null
+
+setUnauthorizedHandler(async () => {
+	if (!store.getState().auth.refreshToken) {
+		store.dispatch(logoutLocal())
+		void persistor.flush()
+		return false
+	}
+
+	if (!refreshPromise) {
+		refreshPromise = store.dispatch(refreshSession()).finally(() => {
+			refreshPromise = null
+		})
+	}
+
+	const result = await refreshPromise
+	return refreshSession.fulfilled.match(result)
 })
 
 export type RootState = ReturnType<typeof store.getState>

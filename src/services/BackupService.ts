@@ -1,5 +1,5 @@
 import { environment } from '@/environments'
-import type { BackupSchedule, UpdateBackupScheduleRequest } from '@/models/backup'
+import type { BackupSchedule, FullBackupResponse, UpdateBackupScheduleRequest } from '@/models/backup'
 import { apiRequest } from './httpClient'
 
 export const BackupService = {
@@ -12,6 +12,11 @@ export const BackupService = {
 		}),
 	runNow: (accessToken: string, userId: string) =>
 		apiRequest<BackupSchedule>(environment.apiRoutes.backups.runNow(userId), {
+			method: 'POST',
+			accessToken,
+		}),
+	fullRunNow: (accessToken: string) =>
+		apiRequest<FullBackupResponse>(environment.apiRoutes.backups.fullRunNow, {
 			method: 'POST',
 			accessToken,
 		}),

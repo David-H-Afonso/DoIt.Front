@@ -16,12 +16,15 @@ export type NowTask = {
 	assignmentMode: string
 	assigneeIds: string[]
 	assigneeNames: string[]
-	status: 'overdue' | 'available' | 'unavailable' | 'completed'
+	status: 'overdue' | 'available' | 'unavailable' | 'completed' | 'upcoming'
 	occurrenceStatus: 'Pending' | 'Done' | 'Missed' | 'NotApplicable'
 	availableFromTime?: string | null
 	availableUntilTime?: string | null
 	recommendedTime?: string | null
 	timeZoneId?: string | null
+	occurrenceDate?: string | null
+	completionTiming?: string | null
+	completedAt?: string | null
 }
 
 export type NowZone = {
@@ -41,6 +44,7 @@ export type NowResponse = {
 	scope: NowScope
 	progress: NowProgress
 	zones: NowZone[]
+	upcoming?: NowTask[]
 }
 
 export type OccurrenceAction = 'done' | 'missed' | 'notApplicable'

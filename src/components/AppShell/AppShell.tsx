@@ -17,6 +17,8 @@ const navItems = [
 	{ to: '/tasks', labelKey: 'navigation.tasks', icon: 'M5 6h14M5 12h14M5 18h9M8 6h.01M8 12h.01M8 18h.01' },
 	{ to: '/zones', labelKey: 'navigation.zones', icon: 'M4.5 5.5h6v6h-6Zm9 0h6v6h-6Zm-9 9h6v6h-6Zm9 0h6v6h-6Z' },
 	{ to: '/review', labelKey: 'navigation.review', icon: 'M8 7h10M8 12h10M8 17h6M4.5 7h.01M4.5 12h.01M4.5 17h.01' },
+	{ to: '/statistics', labelKey: 'navigation.statistics', icon: 'M5 19V5m0 14h14M9 16v-4m5 4V8m5 8V5' },
+	{ to: '/calendar', labelKey: 'navigation.calendar', icon: 'M6 4v3m12-3v3M4 9h16M5 6h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Zm3 7h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01' },
 	{ to: '/profile', labelKey: 'navigation.profile', icon: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0' },
 ]
 
@@ -36,6 +38,10 @@ export default function AppShell() {
 			? 'tasks.title'
 		: location.pathname.startsWith('/review')
 			? 'review.title'
+				: location.pathname.startsWith('/statistics')
+					? 'statistics.title'
+				: location.pathname.startsWith('/calendar')
+					? 'calendar.title'
 			: location.pathname.startsWith('/profile')
 				? 'profile.title'
 				: 'now.title'
@@ -44,15 +50,23 @@ export default function AppShell() {
 
 	useEffect(() => {
 		if (accessToken) {
-			if (accessTokenExpiresAt && new Date(accessTokenExpiresAt).getTime() <= Date.now()) {
-				dispatch(refreshSession())
-				return
-			}
 			dispatch(fetchZones())
 			dispatch(fetchTasks())
 			dispatch(fetchNow())
 			dispatch(fetchXp())
 		}
+	}, [accessToken, accessTokenExpiresAt, dispatch])
+
+	useEffect(() => {
+		if (!accessToken || !accessTokenExpiresAt) {
+			return
+		}
+
+		const refreshIn = Math.max(1000, new Date(accessTokenExpiresAt).getTime() - Date.now() - 60_000)
+		const timer = window.setTimeout(() => {
+			void dispatch(refreshSession())
+		}, refreshIn)
+		return () => window.clearTimeout(timer)
 	}, [accessToken, accessTokenExpiresAt, dispatch])
 
 	const changeScope = (scope: NowScope) => {
@@ -128,7 +142,7 @@ export default function AppShell() {
 						<path d='M12 5v14M5 12h14' />
 					</svg>
 				</button>
-				{[navItems[3], navItems[4]].map((item) => (
+				{[navItems[4], navItems[5]].map((item) => (
 					<NavLink key={item.to} to={item.to} className={({ isActive }) => `mobile-dock__item${isActive ? ' mobile-dock__item--active' : ''}`}>
 						<svg aria-hidden='true' viewBox='0 0 24 24'>
 							<path d={item.icon} />

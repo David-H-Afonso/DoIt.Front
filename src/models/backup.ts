@@ -16,3 +16,10 @@ export type UpdateBackupScheduleRequest = {
 	fileNamePrefix: string
 	fileNameSuffix: string
 }
+
+export type FullBackupResponse = {
+	fileName: string
+	sizeBytes: number
+	createdAt: string
+	destinationPath: string
+}

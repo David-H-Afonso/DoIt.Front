@@ -9,6 +9,8 @@ import ProfilePage from '@/components/Profile/ProfilePage'
 import ReviewPage from '@/components/Review/ReviewPage'
 import ZoneDetailPage from '@/components/Zones/ZoneDetailPage'
 import ZonesPage from '@/components/Zones/ZonesPage'
+import StatisticsPage from '@/components/Statistics/StatisticsPage'
+import CalendarPage from '@/components/Calendar/CalendarPage'
 
 export const router = createBrowserRouter([
 	{
@@ -32,6 +34,8 @@ export const router = createBrowserRouter([
 							{ path: 'zones', element: <ZonesPage /> },
 							{ path: 'zones/:id', element: <ZoneDetailPage /> },
 							{ path: 'review', element: <ReviewPage /> },
+							{ path: 'statistics', element: <StatisticsPage /> },
+							{ path: 'calendar', element: <CalendarPage /> },
 							{ path: 'profile', element: <ProfilePage /> },
 						],
 					},

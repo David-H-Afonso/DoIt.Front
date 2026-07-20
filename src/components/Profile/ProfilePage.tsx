@@ -8,6 +8,8 @@ import { createUser, fetchUsers, resetUserPassword, updateUser } from '@/store/f
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { useToast } from '@/components/Toasts/useToast'
 import type { CreateTaskRequest } from '@/models/task'
+import { BackupService } from '@/services'
+import type { BackupSchedule } from '@/models/backup'
 
 type CsvTaskRow = {
 	title: string
@@ -53,6 +55,11 @@ export default function ProfilePage() {
 	const [importRows, setImportRows] = useState<CsvTaskRow[]>([])
 	const [importError, setImportError] = useState('')
 	const [importStatus, setImportStatus] = useState('')
+	const [backupSchedule, setBackupSchedule] = useState<BackupSchedule | null>(null)
+	const [backupDestination, setBackupDestination] = useState('/app/data/backups')
+	const [backupRetention, setBackupRetention] = useState('7')
+	const [backupBusy, setBackupBusy] = useState(false)
+	const [backupStatus, setBackupStatus] = useState('')
 	const levelStart = xp?.currentLevelXp ?? 0
 	const levelEnd = xp?.nextLevelXp ?? 100
 	const progress = levelEnd > levelStart ? Math.min(100, Math.round(((xp?.progressToNextLevel ?? 0) / (levelEnd - levelStart)) * 100)) : 0
@@ -61,8 +68,49 @@ export default function ProfilePage() {
 	useEffect(() => {
 		if (accessToken && user?.role === 'Admin') {
 			dispatch(fetchUsers())
+			BackupService.list(accessToken).then((schedules) => {
+				const schedule = schedules.find((candidate) => candidate.userId === user.id)
+				if (schedule) {
+					setBackupSchedule(schedule)
+					setBackupDestination(schedule.destinationPath)
+					setBackupRetention(String(schedule.retentionCount))
+				}
+			}).catch(() => setBackupStatus(t('backups.loadError')))
 		}
-	}, [accessToken, dispatch, user?.role])
+	}, [accessToken, dispatch, t, user?.id, user?.role])
+
+	const saveBackup = async (event: FormEvent) => {
+		event.preventDefault()
+		if (!accessToken || !user) return
+		setBackupBusy(true)
+		try {
+			const schedule = await BackupService.update(accessToken, user.id, {
+				destinationPath: backupDestination,
+				retentionCount: Number(backupRetention || 0),
+				fileNamePrefix: backupSchedule?.fileNamePrefix ?? '',
+				fileNameSuffix: backupSchedule?.fileNameSuffix ?? '',
+			})
+			setBackupSchedule(schedule)
+			setBackupStatus(t('backups.saved'))
+		} catch {
+			setBackupStatus(t('backups.saveError'))
+		} finally {
+			setBackupBusy(false)
+		}
+	}
+
+	const runFullBackup = async () => {
+		if (!accessToken) return
+		setBackupBusy(true)
+		try {
+			const result = await BackupService.fullRunNow(accessToken)
+			setBackupStatus(`${t('backups.started')}: ${result.fileName}`)
+		} catch {
+			setBackupStatus(t('backups.runError'))
+		} finally {
+			setBackupBusy(false)
+		}
+	}
 
 	const submitCreateUser = async (event: FormEvent) => {
 		event.preventDefault()
@@ -197,6 +245,20 @@ export default function ProfilePage() {
 				<span className='profile-pending-card__badge'>{t('theme.pending')}</span>
 			</section>
 
+			{user?.role === 'Admin' ? <section className='profile-admin-card' aria-labelledby='profile-backups-title'>
+				<div className='profile-card__header'>
+					<div><span className='eyebrow'>{t('profile.tools')}</span><h2 id='profile-backups-title'>{t('backups.fullTitle')}</h2></div>
+				</div>
+				<p>{t('backups.fullDescription')}</p>
+				<form className='profile-admin-create' onSubmit={saveBackup}>
+					<label>{t('backups.destination')}<input value={backupDestination} onChange={(event) => setBackupDestination(event.target.value)} required /></label>
+					<label>{t('backups.retention')}<input type='number' min='0' value={backupRetention} onChange={(event) => setBackupRetention(event.target.value)} required /></label>
+					<button className='primary-action' type='submit' disabled={backupBusy}>{t('backups.save')}</button>
+					<button className='secondary-action' type='button' disabled={backupBusy} onClick={() => void runFullBackup()}>{t('backups.fullRunNow')}</button>
+				</form>
+				{backupStatus ? <p className='profile-import-status'>{backupStatus}</p> : null}
+			</section> : null}
+
 			{user?.role === 'Admin' ? <section className='profile-admin-card' aria-labelledby='profile-users-title'>
 				<div className='profile-card__header'>
 					<div>
@@ -322,6 +384,7 @@ function csvRowToTaskRequest(row: CsvTaskRow, zoneId: string | undefined, users:
 			recurrenceType: recurrence,
 			startDate: /^\d{4}-\d{2}-\d{2}$/.test(row.startDate) ? row.startDate : localDate(),
 			weekday: recurrence === 'Weekday' ? parseWeekday(row.weekday) : null,
+			weekOfMonth: null,
 			timesPerWeek: recurrence === 'TimesPerWeek' ? Number(row.timesPerWeek || 1) : null,
 			everyNDays: recurrence === 'EveryNDays' ? Number(row.everyNDays || 1) : null,
 			availableFromTime: row.availableFromTime || null,

@@ -9,6 +9,7 @@ export const apiRoutes = {
 	now: '/api/now',
 	occurrences: {
 		complete: (id: string) => `/api/occurrences/${id}/complete`,
+		completeEarly: (id: string) => `/api/occurrences/${id}/complete-early`,
 		miss: (id: string) => `/api/occurrences/${id}/miss`,
 		notApplicable: (id: string) => `/api/occurrences/${id}/not-applicable`,
 		undo: (id: string) => `/api/occurrences/${id}/undo`,
@@ -43,9 +44,18 @@ export const apiRoutes = {
 		users: '/api/backups/users',
 		user: (id: string) => `/api/backups/users/${id}`,
 		runNow: (id: string) => `/api/backups/users/${id}/run-now`,
+		fullRunNow: '/api/backups/full/run-now',
 	},
 	xp: {
 		me: '/api/xp/me',
+	},
+	statistics: '/api/statistics',
+	calendar: {
+		events: '/api/calendar/events',
+		event: (id: string) => `/api/calendar/events/${id}`,
+		dueReminders: '/api/calendar/reminders/due',
+		acknowledgeReminder: (id: string) => `/api/calendar/reminders/${id}/acknowledge`,
+		monthlyReport: '/api/calendar/reports/monthly',
 	},
 } as const
 

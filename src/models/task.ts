@@ -4,6 +4,7 @@ export type TaskSchedule = {
 	startDate: string
 	endDate?: string | null
 	weekday?: number | null
+	weekOfMonth?: number | null
 	timesPerWeek?: number | null
 	everyNDays?: number | null
 	availableFromTime?: string | null
@@ -44,6 +45,7 @@ export type TaskScheduleRequest = {
 	startDate?: string | null
 	endDate?: string | null
 	weekday?: number | null
+	weekOfMonth?: number | null
 	timesPerWeek?: number | null
 	everyNDays?: number | null
 	availableFromTime?: string | null

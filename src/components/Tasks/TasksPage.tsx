@@ -83,6 +83,7 @@ export default function TasksPage() {
 					<option value='Weekday'>{t('tasks.weekly')}</option>
 					<option value='TimesPerWeek'>{t('quickCreate.xPerWeek')}</option>
 					<option value='EveryNDays'>{t('quickCreate.everyNDaysShort')}</option>
+					<option value='MonthlyOrdinalWeekday'>{t('quickCreate.monthlyOrdinal')}</option>
 				</select>
 				<select aria-label={t('tasks.sort')} value={sortMode} onChange={(event) => setSortMode(event.target.value as SortMode)}>
 					<option value='alphabetical'>{t('tasks.sortAlphabetical')}</option>
@@ -151,6 +152,7 @@ function getRecurrenceLabel(type: string, schedule: NonNullable<TaskItem['schedu
 	if (type === 'Weekday') return replace(t('tasks.weekday'), t(`weekdays.${schedule.weekday ?? 0}`).toLocaleLowerCase())
 	if (type === 'TimesPerWeek') return replace(t('tasks.timesPerWeek'), String(schedule.timesPerWeek ?? 0))
 	if (type === 'EveryNDays') return replace(t('tasks.everyNDays'), String(schedule.everyNDays ?? 0))
+	if (type === 'MonthlyOrdinalWeekday') return `${t(`quickCreate.ordinal.${schedule.weekOfMonth ?? 1}`)} ${t(`weekdays.${schedule.weekday ?? 0}`)}`
 	return t('tasks.oneOff')
 }
 

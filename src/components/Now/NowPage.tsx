@@ -15,7 +15,7 @@ export default function NowPage() {
 	const { t, formatDate } = useI18n()
 	const dispatch = useAppDispatch()
 	const accessToken = useAppSelector((state) => state.auth.accessToken)
-	const { date, zones, progress, loading, error, scope } = useAppSelector((state) => state.now)
+	const { date, zones, upcoming, progress, loading, error, scope } = useAppSelector((state) => state.now)
 
 	useEffect(() => {
 		if (accessToken) {
@@ -46,6 +46,18 @@ export default function NowPage() {
 					<NowZoneSection key={zone.zoneId ?? 'general'} zone={zone} />
 				))}
 			</section>
+
+			{upcoming && upcoming.length > 0 ? <section className='zone-panel upcoming-panel'>
+				<header className='zone-panel__header'>
+					<div>
+						<h2>{t('now.upcomingTitle')}</h2>
+						<span>{t('now.upcomingDescription')}</span>
+					</div>
+				</header>
+				<div className='task-section task-section--available'>
+					{upcoming.map((task) => <UpcomingTaskCard key={task.occurrenceId} task={task} />)}
+				</div>
+			</section> : null}
 		</div>
 	)
 }
@@ -148,7 +160,10 @@ export function NowTaskCard({ task, tone }: { task: NowTask; tone: NowTask['stat
 				<strong>{task.title}</strong>
 				<span>{timeLabel}</span>
 			</button>
-			{isCompleted ? <span className='task-completed-state'>{t('now.status.completed')}</span> : <div className='task-secondary-actions'>
+			{isCompleted ? <div className='task-secondary-actions task-secondary-actions--completed'>
+				<span className='task-completed-state'>{task.completionTiming === 'Early' ? t('now.doneEarly') : t('now.status.completed')}</span>
+				{task.completionTiming === 'Early' ? <button className='secondary-action task-action task-action--compact' type='button' disabled={pendingAction !== null} onClick={() => applyAction('notApplicable')}>{t('now.notApplicable')}</button> : null}
+			</div> : <div className='task-secondary-actions'>
 				<button className='secondary-action task-action task-action--compact' type='button' disabled={pendingAction !== null} onClick={() => applyAction('missed')}>
 					{t('now.miss')}
 				</button>
@@ -156,6 +171,43 @@ export function NowTaskCard({ task, tone }: { task: NowTask; tone: NowTask['stat
 					{t('now.notApplicable')}
 				</button>
 			</div>}
+		</article>
+	)
+}
+
+function UpcomingTaskCard({ task }: { task: NowTask }) {
+	const { t } = useI18n()
+	const dispatch = useAppDispatch()
+	const { showToast } = useToast()
+	const accessToken = useAppSelector((state) => state.auth.accessToken)
+	const [loading, setLoading] = useState(false)
+
+	const completeEarly = async () => {
+		if (!accessToken || loading) return
+		setLoading(true)
+		try {
+			const response = await OccurrenceService.completeEarly(accessToken, task.occurrenceId)
+			if (response.userXp) dispatch(setXp(response.userXp))
+			showToast({ type: 'success', title: t('now.completedEarly') })
+			dispatch(fetchNow())
+			dispatch(fetchTasks())
+		} catch {
+			showToast({ type: 'error', title: t('toasts.error') })
+		} finally {
+			setLoading(false)
+		}
+	}
+
+	return (
+		<article className='task-row task-row--upcoming'>
+			<button className='task-check' type='button' disabled={loading} onClick={() => void completeEarly()}>
+				{loading ? t('common.loading') : t('now.completeEarly')}
+			</button>
+			<div className='task-row__main'>
+				<strong>{task.title}</strong>
+				<span>{t('now.scheduledFor')} {task.occurrenceDate ? new Date(`${task.occurrenceDate}T00:00:00`).toLocaleDateString() : '—'}</span>
+			</div>
+			<span className='task-completed-state'>{getTimeLabel(task, t)}</span>
 		</article>
 	)
 }
@@ -169,8 +221,14 @@ function cloneSnapshot(snapshot: { zones: NowZone[]; progress: NowProgress }) {
 }
 
 function getTimeLabel(task: NowTask, t: (key: string) => string) {
+	if (task.completionTiming === 'Early') {
+		return t('now.doneEarly')
+	}
 	if (task.status === 'unavailable' && task.availableFromTime) {
 		return `${t('now.availableAt')} ${formatScheduleTime(task.availableFromTime, task.timeZoneId)}`
+	}
+	if (task.status === 'upcoming') {
+		return task.zoneName ?? task.scope
 	}
 	if (task.status === 'overdue' && task.availableUntilTime) {
 		return `${t('now.overdueSince')} ${formatScheduleTime(task.availableUntilTime, task.timeZoneId)}`
