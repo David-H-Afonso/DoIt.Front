@@ -10,6 +10,7 @@ import { fetchZones } from '@/store/features/zones/zonesSlice'
 import { fetchNow, setNowScope } from '@/store/features/now/nowSlice'
 import type { NowScope } from '@/models/now'
 import QuickCreateSheet from '@/components/Tasks/QuickCreateSheet'
+import DoItLogo from '@/components/Brand/DoItLogo'
 
 const navItems = [
 	{ to: '/now', labelKey: 'navigation.now', icon: 'M8 5.5h8M8 12h8M8 18.5h5M5 5.5h.01M5 12h.01M5 18.5h.01' },
@@ -62,9 +63,8 @@ export default function AppShell() {
 	return (
 		<div className='app-frame'>
 			<aside className='command-rail' aria-label='Main navigation'>
-				<div className='command-rail__brand' aria-label='DoIt'>
-					<span>Do</span>
-					<strong>It</strong>
+				<div className='command-rail__brand'>
+					<DoItLogo />
 				</div>
 				<nav className='command-rail__nav'>
 					{navItems.map((item) => (

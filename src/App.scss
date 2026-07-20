@@ -137,14 +137,45 @@ select:focus-visible {
 }
 
 .auth-card__brand {
+	display: inline-flex;
+	width: fit-content;
 	color: #1b1b1b;
+}
+
+.auth-card__brand .doit-logo__wordmark span {
+	color: #777;
+}
+
+.doit-logo {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--color-text, #1d1d1d);
+}
+
+.doit-logo__mark {
+	width: 30px;
+	height: 30px;
+	flex: 0 0 auto;
+	fill: none;
+	stroke: none;
+}
+
+.doit-logo__wordmark {
+	color: currentColor;
 	font-size: 1.05rem;
 	font-weight: 900;
 	letter-spacing: -0.07em;
+	line-height: 1;
 }
 
-.auth-card__brand span {
-	color: #777;
+.doit-logo__wordmark strong {
+	font-weight: inherit;
+}
+
+.command-rail__brand .doit-logo__mark {
+	width: 28px;
+	height: 28px;
 }
 
 .auth-card h1,

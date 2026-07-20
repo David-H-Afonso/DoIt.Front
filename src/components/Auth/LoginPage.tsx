@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { useI18n } from '@/i18n'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { login, register } from '@/store/features/auth/authSlice'
+import DoItLogo from '@/components/Brand/DoItLogo'
 
 export default function LoginPage() {
 	const { t, locale } = useI18n()
@@ -29,7 +30,7 @@ export default function LoginPage() {
 	return (
 		<main className='auth-page'>
 			<form className='auth-card' onSubmit={submit}>
-				<div className='auth-card__brand'>Do<span>It</span></div>
+				<DoItLogo className='auth-card__brand' />
 				<h1>{mode === 'login' ? t('auth.welcome') : t('auth.createAccount')}</h1>
 
 				<label>
