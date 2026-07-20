@@ -1,5 +1,5 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
-import { useI18n } from '@/i18n'
+import { translate, useI18n } from '@/i18n'
 import { logoutLocal } from '@/store/features/auth/authSlice'
 import { fetchNow } from '@/store/features/now/nowSlice'
 import { createTask, fetchTasks } from '@/store/features/tasks/tasksSlice'
@@ -10,6 +10,7 @@ import { useToast } from '@/components/Toasts/useToast'
 import type { CreateTaskRequest } from '@/models/task'
 import { BackupService } from '@/services'
 import type { BackupSchedule } from '@/models/backup'
+import { ApiError } from '@/services/httpClient'
 
 type CsvTaskRow = {
 	title: string
@@ -30,7 +31,7 @@ type CsvTaskRow = {
 }
 
 export default function ProfilePage() {
-	const { t } = useI18n()
+	const { locale, t } = useI18n()
 	const dispatch = useAppDispatch()
 	const { showToast } = useToast()
 	const user = useAppSelector((state) => state.auth.user)
@@ -66,7 +67,7 @@ export default function ProfilePage() {
 	const zones = useAppSelector((state) => state.zones.items.filter((zone) => !zone.isArchived))
 
 	useEffect(() => {
-		if (accessToken && user?.role === 'Admin') {
+		if (accessToken && user?.role === 'Admin' && user.id) {
 			dispatch(fetchUsers())
 			BackupService.list(accessToken).then((schedules) => {
 				const schedule = schedules.find((candidate) => candidate.userId === user.id)
@@ -75,9 +76,12 @@ export default function ProfilePage() {
 					setBackupDestination(schedule.destinationPath)
 					setBackupRetention(String(schedule.retentionCount))
 				}
-			}).catch(() => setBackupStatus(t('backups.loadError')))
+			}).catch((reason: unknown) => {
+				const status = reason instanceof ApiError && reason.status > 0 ? ` (${reason.status})` : ''
+				setBackupStatus(`${translate(locale, 'backups.loadError')}${status}`)
+			})
 		}
-	}, [accessToken, dispatch, t, user?.id, user?.role])
+	}, [accessToken, dispatch, locale, user?.id, user?.role])
 
 	const saveBackup = async (event: FormEvent) => {
 		event.preventDefault()
