@@ -108,7 +108,7 @@ export function NowTaskCard({ task, tone }: { task: NowTask; tone: NowTask['stat
 	const isFuture = tone === 'unavailable' || tone === 'upcoming'
 
 	const applyAction = async (action: OccurrenceAction) => {
-		if (!accessToken || pendingAction) {
+			if (!accessToken || pendingAction) {
 			return
 		}
 
@@ -123,6 +123,7 @@ export function NowTaskCard({ task, tone }: { task: NowTask; tone: NowTask['stat
 				dispatch(setXp(response.userXp))
 			}
 			dispatch(fetchTasks())
+			dispatch(fetchNow())
 			showToast({
 				type: 'success',
 				title: response.xpEarned > 0 ? `${t(`toasts.${action}`)} +${response.xpEarned} XP` : t(`toasts.${action}`),
@@ -135,6 +136,7 @@ export function NowTaskCard({ task, tone }: { task: NowTask; tone: NowTask['stat
 							dispatch(setXp(undoResponse.userXp))
 						}
 						dispatch(fetchTasks())
+						dispatch(fetchNow())
 					} catch {
 						showToast({ type: 'error', title: t('toasts.error') })
 						dispatch(fetchNow())
@@ -225,7 +227,11 @@ function timeToMinutes(value?: string | null) {
 
 function mergeUpcoming(zones: NowZone[], upcoming: NowTask[]): NowZone[] {
 	const merged = zones.map((zone) => ({ ...zone, unavailable: [...zone.unavailable] }))
+	const currentTaskIds = new Set(merged.flatMap((zone) => [...zone.overdue, ...zone.available, ...zone.unavailable].map((task) => task.id)))
 	for (const task of upcoming) {
+		if (currentTaskIds.has(task.id)) {
+			continue
+		}
 		let zone = merged.find(candidate => candidate.zoneId === task.zoneId)
 		if (!zone) {
 			zone = {
