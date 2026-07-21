@@ -66,8 +66,8 @@ export function NowZoneSection({ zone, showOpenLink = true, showCompleted = fals
 				{showOpenLink ? <Link to={target}>{t('zones.open')}</Link> : null}
 			</header> : null}
 
-			<TaskSection title={t('now.sections.overdue')} tasks={zone.overdue} tone='overdue' />
 			<TaskSection title={t('now.sections.available')} tasks={zone.available} tone='available' />
+			<TaskSection title={t('now.sections.overdue')} tasks={zone.overdue} tone='overdue' />
 			<TaskSection title={t('now.sections.unavailable')} tasks={zone.unavailable} tone='unavailable' />
 			{showCompleted ? <TaskSection title={t('now.sections.completed')} tasks={zone.completed ?? []} tone='completed' /> : null}
 		</section>
@@ -82,7 +82,7 @@ export function TaskSection({ title, tasks, tone }: { title: string; tasks: NowT
 	return (
 		<div className={`task-section task-section--${tone}`}>
 			<h3>{title}</h3>
-			{tasks.map((task) => (
+			{[...tasks].sort(compareTasks).map((task) => (
 				<NowTaskCard key={task.id} task={task} tone={tone} />
 			))}
 		</div>
@@ -210,13 +210,22 @@ function getTimeLabel(task: NowTask, t: (key: string) => string) {
 }
 
 function compareTasks(left: NowTask, right: NowTask) {
+	const leftStatusRank = left.status === 'available' ? 0 : left.status === 'overdue' ? 1 : 2
+	const rightStatusRank = right.status === 'available' ? 0 : right.status === 'overdue' ? 1 : 2
+	if (leftStatusRank !== rightStatusRank) return leftStatusRank - rightStatusRank
 	const leftRank = left.recurrenceType === 'Manual' ? 2 : left.recommendedTime || left.availableFromTime || left.availableUntilTime ? 0 : 1
 	const rightRank = right.recurrenceType === 'Manual' ? 2 : right.recommendedTime || right.availableFromTime || right.availableUntilTime ? 0 : 1
 	if (leftRank !== rightRank) return leftRank - rightRank
-	const leftTime = timeToMinutes(left.recommendedTime ?? left.availableFromTime ?? left.availableUntilTime)
-	const rightTime = timeToMinutes(right.recommendedTime ?? right.availableFromTime ?? right.availableUntilTime)
+	const leftTime = timeToMinutes(sortTime(left))
+	const rightTime = timeToMinutes(sortTime(right))
 	if (leftTime !== rightTime) return leftTime - rightTime
 	return left.title.localeCompare(right.title, 'es', { sensitivity: 'base' })
+}
+
+function sortTime(task: NowTask) {
+	return task.status === 'unavailable' || task.status === 'upcoming'
+		? task.availableFromTime ?? task.recommendedTime ?? task.availableUntilTime
+		: task.recommendedTime ?? task.availableFromTime ?? task.availableUntilTime
 }
 
 function timeToMinutes(value?: string | null) {
