@@ -51,6 +51,7 @@
     "complete": "Completar",
     "miss": "No hecha",
     "notApplicable": "No aplica",
+    "notToday": "No hoy",
     "availableAt": "Disponible a las",
     "overdueSince": "Vencida desde",
     "recommendedAt": "Recomendada a las",

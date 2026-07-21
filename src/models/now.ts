@@ -22,6 +22,7 @@ export type NowTask = {
 	availableUntilTime?: string | null
 	recommendedTime?: string | null
 	timeZoneId?: string | null
+	recurrenceType: string
 	occurrenceDate?: string | null
 	completionTiming?: string | null
 	completedAt?: string | null

@@ -150,6 +150,7 @@ export default function QuickCreateSheet() {
 		showToast({ type: 'success', title: t('toasts.zoneCreated') })
 	}
 
+
 	const removeTask = async () => {
 		if (!editingTask || !window.confirm(t('quickCreate.deleteConfirm'))) return
 		const result = await dispatch(deleteTask(editingTask.id))

@@ -15,7 +15,9 @@ export default function NowPage() {
 	const { t, formatDate } = useI18n()
 	const dispatch = useAppDispatch()
 	const accessToken = useAppSelector((state) => state.auth.accessToken)
-	const { date, zones, upcoming, progress, loading, error, scope } = useAppSelector((state) => state.now)
+	const { date, zones, loading, error, scope } = useAppSelector((state) => state.now)
+	const actionableZones = zones.filter((zone) => zone.overdue.length > 0 || zone.available.length > 0)
+	const actionablePending = actionableZones.reduce((total, zone) => total + zone.overdue.length + zone.available.length, 0)
 
 	useEffect(() => {
 		if (accessToken) {
@@ -33,31 +35,20 @@ export default function NowPage() {
 					<h1>{formatDate(currentDate)}</h1>
 				</div>
 				<div className='now-focus__count'>
-					<strong>{loading ? '—' : progress.pending}</strong>
+					<strong>{loading ? '—' : actionablePending}</strong>
 					<span>{t('now.pending')}</span>
 				</div>
 			</section>
 
 			{error ? <div className='form-error'>{error}</div> : null}
-			{!loading && zones.length === 0 ? <p className='empty-state'>{t('now.empty')}</p> : null}
+			{!loading && actionableZones.length === 0 ? <p className='empty-state'>{t('now.empty')}</p> : null}
 
 			<section className='zone-list'>
-				{zones.map((zone) => (
+				{actionableZones.map((zone) => (
 					<NowZoneSection key={zone.zoneId ?? 'general'} zone={zone} />
 				))}
 			</section>
 
-			{upcoming && upcoming.length > 0 ? <section className='zone-panel upcoming-panel'>
-				<header className='zone-panel__header'>
-					<div>
-						<h2>{t('now.upcomingTitle')}</h2>
-						<span>{t('now.upcomingDescription')}</span>
-					</div>
-				</header>
-				<div className='task-section task-section--available'>
-					{upcoming.map((task) => <UpcomingTaskCard key={task.occurrenceId} task={task} />)}
-				</div>
-			</section> : null}
 		</div>
 	)
 }
@@ -77,8 +68,7 @@ export function NowZoneSection({ zone, showOpenLink = true, showCompleted = fals
 
 			<TaskSection title={t('now.sections.overdue')} tasks={zone.overdue} tone='overdue' />
 			<TaskSection title={t('now.sections.available')} tasks={zone.available} tone='available' />
-			<TaskSection title={t('now.sections.unavailable')} tasks={zone.unavailable} tone='unavailable' />
-			{showCompleted ? <TaskSection title={t('now.sections.completed')} tasks={zone.completed ?? []} tone='completed' /> : null}
+		{showCompleted ? <TaskSection title={t('now.sections.completed')} tasks={zone.completed ?? []} tone='completed' /> : null}
 		</section>
 	)
 }
@@ -164,50 +154,13 @@ export function NowTaskCard({ task, tone }: { task: NowTask; tone: NowTask['stat
 				<span className='task-completed-state'>{task.completionTiming === 'Early' ? t('now.doneEarly') : t('now.status.completed')}</span>
 				{task.completionTiming === 'Early' ? <button className='secondary-action task-action task-action--compact' type='button' disabled={pendingAction !== null} onClick={() => applyAction('notApplicable')}>{t('now.notApplicable')}</button> : null}
 			</div> : <div className='task-secondary-actions'>
-				<button className='secondary-action task-action task-action--compact' type='button' disabled={pendingAction !== null} onClick={() => applyAction('missed')}>
+				{task.recurrenceType !== 'TimesPerWeek' ? <button className='secondary-action task-action task-action--compact' type='button' disabled={pendingAction !== null} onClick={() => applyAction('missed')}>
 					{t('now.miss')}
-				</button>
+				</button> : null}
 				<button className='secondary-action task-action task-action--compact' type='button' disabled={pendingAction !== null} onClick={() => applyAction('notApplicable')}>
-					{t('now.notApplicable')}
+					{task.recurrenceType === 'TimesPerWeek' ? t('now.notToday') : t('now.notApplicable')}
 				</button>
 			</div>}
-		</article>
-	)
-}
-
-function UpcomingTaskCard({ task }: { task: NowTask }) {
-	const { t } = useI18n()
-	const dispatch = useAppDispatch()
-	const { showToast } = useToast()
-	const accessToken = useAppSelector((state) => state.auth.accessToken)
-	const [loading, setLoading] = useState(false)
-
-	const completeEarly = async () => {
-		if (!accessToken || loading) return
-		setLoading(true)
-		try {
-			const response = await OccurrenceService.completeEarly(accessToken, task.occurrenceId)
-			if (response.userXp) dispatch(setXp(response.userXp))
-			showToast({ type: 'success', title: t('now.completedEarly') })
-			dispatch(fetchNow())
-			dispatch(fetchTasks())
-		} catch {
-			showToast({ type: 'error', title: t('toasts.error') })
-		} finally {
-			setLoading(false)
-		}
-	}
-
-	return (
-		<article className='task-row task-row--upcoming'>
-			<button className='task-check' type='button' disabled={loading} onClick={() => void completeEarly()}>
-				{loading ? t('common.loading') : t('now.completeEarly')}
-			</button>
-			<div className='task-row__main'>
-				<strong>{task.title}</strong>
-				<span>{t('now.scheduledFor')} {task.occurrenceDate ? new Date(`${task.occurrenceDate}T00:00:00`).toLocaleDateString() : '—'}</span>
-			</div>
-			<span className='task-completed-state'>{getTimeLabel(task, t)}</span>
 		</article>
 	)
 }

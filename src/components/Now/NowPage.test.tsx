@@ -61,10 +61,10 @@ describe('NowPage', () => {
 		expect(screen.getByText('Cocina')).toBeInTheDocument()
 		expect(screen.getByText('Vencidas')).toBeInTheDocument()
 		expect(screen.getByText('Disponibles ahora')).toBeInTheDocument()
-		expect(screen.getByText('Aún no disponibles')).toBeInTheDocument()
+		expect(screen.queryByText('Aún no disponibles')).not.toBeInTheDocument()
 		expect(screen.getAllByRole('button', { name: 'Completar' }).length).toBeGreaterThan(0)
 		expect(screen.getAllByRole('button', { name: 'No hecha' }).length).toBeGreaterThan(0)
-		expect(screen.getByText('Disponible a las 20:00')).toBeInTheDocument()
+		expect(screen.queryByText('Disponible a las 20:00')).not.toBeInTheDocument()
 	})
 
 	it('shows completed recurring tasks when a zone is opened', () => {

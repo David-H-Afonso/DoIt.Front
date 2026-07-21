@@ -59,7 +59,7 @@ export default function TasksPage() {
 			? left.title.localeCompare(right.title, 'es', { sensitivity: 'base' })
 			: sortMode === 'createdDesc'
 				? right.createdAt.localeCompare(left.createdAt)
-				: left.createdAt.localeCompare(right.createdAt)), [query, recurrence, sortMode, status, tasks, zoneId])
+			: left.createdAt.localeCompare(right.createdAt)), [query, recurrence, sortMode, status, tasks, zoneId])
 
 	return (
 		<div className='page-grid tasks-page'>
@@ -138,7 +138,7 @@ function TaskInventoryRow({ task, onEdit, onMiss, onUndo, onArchive, onRestore, 
 			</div>
 			<div className='task-inventory__actions'>
 				<button className='secondary-action task-action--compact' type='button' onClick={onEdit}>{t('tasks.edit')}</button>
-				{task.occurrenceId && task.occurrenceStatus === 'Pending' ? <button className='secondary-action task-action--compact' type='button' onClick={onMiss}>{t('now.miss')}</button> : null}
+				{task.occurrenceId && task.occurrenceStatus === 'Pending' && task.schedule?.recurrenceType !== 'TimesPerWeek' ? <button className='secondary-action task-action--compact' type='button' onClick={onMiss}>{t('now.miss')}</button> : null}
 				{task.occurrenceId && task.occurrenceStatus && task.occurrenceStatus !== 'Pending' ? <button className='secondary-action task-action--compact' type='button' onClick={onUndo}>{t('common.undo')}</button> : null}
 				{task.isArchived ? <button className='secondary-action task-action--compact' type='button' onClick={onRestore}>{t('tasks.restore')}</button> : <button className='link-action task-action--compact' type='button' onClick={onArchive}>{t('tasks.archive')}</button>}
 				<button className='danger-action task-action--compact' type='button' onClick={onDelete}>{t('tasks.delete')}</button>

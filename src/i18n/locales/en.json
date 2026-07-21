@@ -51,6 +51,7 @@
     "complete": "Complete",
     "miss": "Missed",
     "notApplicable": "N/A",
+    "notToday": "Not today",
     "availableAt": "Available at",
     "overdueSince": "Overdue since",
     "recommendedAt": "Recommended at",
