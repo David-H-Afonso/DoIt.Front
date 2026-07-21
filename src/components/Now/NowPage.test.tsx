@@ -28,7 +28,7 @@ describe('NowPage', () => {
 				},
 				now: {
 					date: '2026-07-11',
-					scope: 'me',
+					scope: 'house',
 					progress: { total: 3, done: 0, missed: 0, notApplicable: 0, pending: 3 },
 					loading: false,
 					error: null,
@@ -61,10 +61,10 @@ describe('NowPage', () => {
 		expect(screen.getByText('Cocina')).toBeInTheDocument()
 		expect(screen.getByText('Vencidas')).toBeInTheDocument()
 		expect(screen.getByText('Disponibles ahora')).toBeInTheDocument()
-		expect(screen.queryByText('Aún no disponibles')).not.toBeInTheDocument()
+		expect(screen.getByText('Aún no disponibles')).toBeInTheDocument()
 		expect(screen.getAllByRole('button', { name: 'Completar' }).length).toBeGreaterThan(0)
 		expect(screen.getAllByRole('button', { name: 'No hecha' }).length).toBeGreaterThan(0)
-		expect(screen.queryByText('Disponible a las 20:00')).not.toBeInTheDocument()
+		expect(screen.getByText('Disponible a las 20:00')).toBeInTheDocument()
 	})
 
 	it('shows completed recurring tasks when a zone is opened', () => {

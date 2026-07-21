@@ -15,9 +15,11 @@ export default function NowPage() {
 	const { t, formatDate } = useI18n()
 	const dispatch = useAppDispatch()
 	const accessToken = useAppSelector((state) => state.auth.accessToken)
-	const { date, zones, loading, error, scope } = useAppSelector((state) => state.now)
-	const actionableZones = zones.filter((zone) => zone.overdue.length > 0 || zone.available.length > 0)
-	const actionablePending = actionableZones.reduce((total, zone) => total + zone.overdue.length + zone.available.length, 0)
+	const { date, zones, upcoming, loading, error, scope } = useAppSelector((state) => state.now)
+	const displayZones = mergeUpcoming(zones, upcoming ?? [])
+	const visibleZones = displayZones.filter((zone) => zone.overdue.length > 0 || zone.available.length > 0 || zone.unavailable.length > 0)
+	const visibleTasks = visibleZones.flatMap((zone) => [...zone.overdue, ...zone.available, ...zone.unavailable])
+	const actionablePending = visibleTasks.length
 
 	useEffect(() => {
 		if (accessToken) {
@@ -41,12 +43,10 @@ export default function NowPage() {
 			</section>
 
 			{error ? <div className='form-error'>{error}</div> : null}
-			{!loading && actionableZones.length === 0 ? <p className='empty-state'>{t('now.empty')}</p> : null}
+			{!loading && visibleZones.length === 0 ? <p className='empty-state'>{t('now.empty')}</p> : null}
 
 			<section className='zone-list'>
-				{actionableZones.map((zone) => (
-					<NowZoneSection key={zone.zoneId ?? 'general'} zone={zone} />
-				))}
+				{scope === 'me' ? <FlatTaskList tasks={visibleTasks} /> : visibleZones.map((zone) => <NowZoneSection key={zone.zoneId ?? 'general'} zone={zone} />)}
 			</section>
 
 		</div>
@@ -68,7 +68,8 @@ export function NowZoneSection({ zone, showOpenLink = true, showCompleted = fals
 
 			<TaskSection title={t('now.sections.overdue')} tasks={zone.overdue} tone='overdue' />
 			<TaskSection title={t('now.sections.available')} tasks={zone.available} tone='available' />
-		{showCompleted ? <TaskSection title={t('now.sections.completed')} tasks={zone.completed ?? []} tone='completed' /> : null}
+			<TaskSection title={t('now.sections.unavailable')} tasks={zone.unavailable} tone='unavailable' />
+			{showCompleted ? <TaskSection title={t('now.sections.completed')} tasks={zone.completed ?? []} tone='completed' /> : null}
 		</section>
 	)
 }
@@ -88,6 +89,12 @@ export function TaskSection({ title, tasks, tone }: { title: string; tasks: NowT
 	)
 }
 
+function FlatTaskList({ tasks }: { tasks: NowTask[] }) {
+	return <div className='zone-panel now-flat-list'>
+		{[...tasks].sort(compareTasks).map((task) => <NowTaskCard key={task.occurrenceId} task={task} tone={task.status} />)}
+	</div>
+}
+
 export function NowTaskCard({ task, tone }: { task: NowTask; tone: NowTask['status'] }) {
 	const { t } = useI18n()
 	const dispatch = useAppDispatch()
@@ -98,6 +105,7 @@ export function NowTaskCard({ task, tone }: { task: NowTask; tone: NowTask['stat
 	const [pendingAction, setPendingAction] = useState<OccurrenceAction | null>(null)
 	const timeLabel = getTimeLabel(task, t)
 	const isCompleted = tone === 'completed'
+	const isFuture = tone === 'unavailable' || tone === 'upcoming'
 
 	const applyAction = async (action: OccurrenceAction) => {
 		if (!accessToken || pendingAction) {
@@ -143,14 +151,14 @@ export function NowTaskCard({ task, tone }: { task: NowTask; tone: NowTask['stat
 
 	return (
 		<article className={`task-row task-row--${tone}`}>
-			<button className={`task-check${isCompleted ? ' task-check--completed' : ''}`} type='button' disabled={tone === 'unavailable' || isCompleted || pendingAction !== null} onClick={() => applyAction('done')}>
+			<button className={`task-check${isCompleted ? ' task-check--completed' : ''}`} type='button' disabled={isFuture || isCompleted || pendingAction !== null} onClick={() => applyAction('done')}>
 				<span>{pendingAction === 'done' ? t('common.loading') : isCompleted ? t('now.status.completed') : tone === 'unavailable' ? t(`now.status.${tone}`) : t('now.complete')}</span>
 			</button>
 			<button className='task-row__main task-row__open' type='button' onClick={() => dispatch(openTaskEditor(task.id))}>
 				<strong>{task.title}</strong>
 				<span>{timeLabel}</span>
 			</button>
-			{isCompleted ? <div className='task-secondary-actions task-secondary-actions--completed'>
+			{isFuture ? null : isCompleted ? <div className='task-secondary-actions task-secondary-actions--completed'>
 				<span className='task-completed-state'>{task.completionTiming === 'Early' ? t('now.doneEarly') : t('now.status.completed')}</span>
 				{task.completionTiming === 'Early' ? <button className='secondary-action task-action task-action--compact' type='button' disabled={pendingAction !== null} onClick={() => applyAction('notApplicable')}>{t('now.notApplicable')}</button> : null}
 			</div> : <div className='task-secondary-actions'>
@@ -174,6 +182,10 @@ function cloneSnapshot(snapshot: { zones: NowZone[]; progress: NowProgress }) {
 }
 
 function getTimeLabel(task: NowTask, t: (key: string) => string) {
+	if (task.occurrenceDate && task.occurrenceDate > new Date().toISOString().slice(0, 10)) {
+		const time = task.recommendedTime ?? task.availableFromTime
+		return `${t('now.scheduledFor')} ${new Date(`${task.occurrenceDate}T00:00:00`).toLocaleDateString()}${time ? ` · ${formatScheduleTime(time, task.timeZoneId)}` : ''}`
+	}
 	if (task.completionTiming === 'Early') {
 		return t('now.doneEarly')
 	}
@@ -181,7 +193,7 @@ function getTimeLabel(task: NowTask, t: (key: string) => string) {
 		return `${t('now.availableAt')} ${formatScheduleTime(task.availableFromTime, task.timeZoneId)}`
 	}
 	if (task.status === 'upcoming') {
-		return task.zoneName ?? task.scope
+		return task.occurrenceDate ? `${t('now.scheduledFor')} ${new Date(`${task.occurrenceDate}T00:00:00`).toLocaleDateString()}` : t('now.upcomingTitle')
 	}
 	if (task.status === 'overdue' && task.availableUntilTime) {
 		return `${t('now.overdueSince')} ${formatScheduleTime(task.availableUntilTime, task.timeZoneId)}`
@@ -193,6 +205,43 @@ function getTimeLabel(task: NowTask, t: (key: string) => string) {
 		return getAssignmentLabel(task, t)
 	}
 	return task.zoneName ?? task.scope
+}
+
+function compareTasks(left: NowTask, right: NowTask) {
+	const leftRank = left.recurrenceType === 'Manual' ? 2 : left.recommendedTime || left.availableFromTime || left.availableUntilTime ? 0 : 1
+	const rightRank = right.recurrenceType === 'Manual' ? 2 : right.recommendedTime || right.availableFromTime || right.availableUntilTime ? 0 : 1
+	if (leftRank !== rightRank) return leftRank - rightRank
+	const leftTime = timeToMinutes(left.recommendedTime ?? left.availableFromTime ?? left.availableUntilTime)
+	const rightTime = timeToMinutes(right.recommendedTime ?? right.availableFromTime ?? right.availableUntilTime)
+	if (leftTime !== rightTime) return leftTime - rightTime
+	return left.title.localeCompare(right.title, 'es', { sensitivity: 'base' })
+}
+
+function timeToMinutes(value?: string | null) {
+	if (!value) return Number.MAX_SAFE_INTEGER
+	const [hours, minutes] = value.split(':').map(Number)
+	return hours * 60 + minutes
+}
+
+function mergeUpcoming(zones: NowZone[], upcoming: NowTask[]): NowZone[] {
+	const merged = zones.map((zone) => ({ ...zone, unavailable: [...zone.unavailable] }))
+	for (const task of upcoming) {
+		let zone = merged.find(candidate => candidate.zoneId === task.zoneId)
+		if (!zone) {
+			zone = {
+				zoneId: task.zoneId,
+				zoneName: task.zoneName ?? 'General',
+				progress: { total: 0, done: 0, missed: 0, notApplicable: 0, pending: 0 },
+				overdue: [],
+				available: [],
+				unavailable: [],
+				completed: [],
+			}
+			merged.push(zone)
+		}
+		zone.unavailable.push({ ...task, status: 'unavailable' })
+	}
+	return merged
 }
 
 function getAssignmentLabel(task: NowTask, t: (key: string) => string) {
