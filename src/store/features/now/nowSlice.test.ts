@@ -1,4 +1,6 @@
-import { applyOccurrenceStatus, nowReducer, restoreNowSnapshot, setNowScope } from './nowSlice'
+import { vi } from 'vitest'
+import { NowService } from '@/services'
+import { applyOccurrenceStatus, fetchNow, nowReducer, restoreNowSnapshot, setNowScope } from './nowSlice'
 
 describe('nowSlice', () => {
 	it('updates the selected scope', () => {
@@ -36,5 +38,16 @@ describe('nowSlice', () => {
 		const restored = nowReducer(done, restoreNowSnapshot(snapshot))
 		expect(restored.progress.pending).toBe(1)
 		expect(restored.zones[0].available).toHaveLength(1)
+	})
+
+	it('requests the current browser date when no date is provided', async () => {
+		const get = vi.spyOn(NowService, 'get').mockResolvedValue({} as never)
+		const now = new Date()
+		const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+
+		await fetchNow()(vi.fn() as never, () => ({ auth: { accessToken: 'token' }, now: { scope: 'me' } }) as never, undefined)
+
+		expect(get).toHaveBeenCalledWith('token', { scope: 'me', date: localDate })
+		get.mockRestore()
 	})
 })

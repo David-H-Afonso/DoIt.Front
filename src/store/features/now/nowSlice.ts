@@ -45,9 +45,14 @@ export const fetchNow = createAsyncThunk('now/fetch', async (request: FetchNowRe
 
 	return NowService.get(state.auth.accessToken, {
 		scope: request?.scope ?? state.now.scope,
-		date: request?.date,
+		date: request?.date ?? getLocalDateKey(),
 	})
 })
+
+function getLocalDateKey() {
+	const date = new Date()
+	return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
 
 const applyNow = (state: NowState, payload: NowResponse) => {
 	state.date = payload.date
