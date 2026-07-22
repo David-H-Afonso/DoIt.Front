@@ -21,6 +21,7 @@ type CsvTaskRow = {
 	weekday: string
 	timesPerWeek: string
 	everyNDays: string
+	interval?: string
 	startDate: string
 	availableFromTime: string
 	availableUntilTime: string
@@ -391,6 +392,7 @@ function csvRowToTaskRequest(row: CsvTaskRow, zoneId: string | undefined, users:
 			weekOfMonth: null,
 			timesPerWeek: recurrence === 'TimesPerWeek' ? Number(row.timesPerWeek || 1) : null,
 			everyNDays: recurrence === 'EveryNDays' ? Number(row.everyNDays || 1) : null,
+			interval: ['EveryNWeeks', 'EveryNMonths', 'EveryNYears'].includes(recurrence) ? parseInterval(row.interval || row.frequency) : null,
 			availableFromTime: row.availableFromTime || null,
 			availableUntilTime: row.availableUntilTime || null,
 			recommendedTime: row.recommendedTime || null,
@@ -405,7 +407,11 @@ function csvRowToTaskRequest(row: CsvTaskRow, zoneId: string | undefined, users:
 function normalizeRecurrence(value: string) {
 	const normalized = value.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 	if (normalized === 'daily' || normalized === 'cada dia') return 'Daily'
-	if (normalized === 'weekday' || normalized.startsWith('cada ')) return 'Weekday'
+	if (normalized === 'every x weeks' || normalized === 'cada x semanas' || /^every \d+ weeks$/.test(normalized) || /^cada \d+ semanas$/.test(normalized)) return 'EveryNWeeks'
+	if (normalized === 'monthly' || normalized === 'mensual') return 'Monthly'
+	if (normalized === 'every x months' || normalized === 'cada x meses' || /^every \d+ months$/.test(normalized) || /^cada \d+ meses$/.test(normalized)) return 'EveryNMonths'
+	if (normalized === 'every x years' || normalized === 'cada x anos' || /^every \d+ years$/.test(normalized) || /^cada \d+ anos$/.test(normalized)) return 'EveryNYears'
+	if (normalized === 'weekday' || normalized === 'weekly' || normalized === 'semanal') return 'Weekday'
 	if (normalized === 'timesperweek' || normalized === 'x por semana') return 'TimesPerWeek'
 	if (normalized === 'everyndays' || normalized === 'cada x dias') return 'EveryNDays'
 	return 'Manual'
@@ -415,6 +421,10 @@ function parseWeekday(value: string) {
 	if (/^\d$/.test(value)) return Number(value)
 	const weekdays: Record<string, number> = { domingo: 0, lunes: 1, martes: 2, miercoles: 3, jueves: 4, viernes: 5, sabado: 6 }
 	return weekdays[value.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')] ?? 1
+}
+
+function parseInterval(value: string) {
+	return Number(value.match(/\d+/)?.[0] ?? 1)
 }
 
 function localDate() {

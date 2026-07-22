@@ -7,6 +7,7 @@ export type TaskSchedule = {
 	weekOfMonth?: number | null
 	timesPerWeek?: number | null
 	everyNDays?: number | null
+	interval?: number | null
 	availableFromTime?: string | null
 	availableUntilTime?: string | null
 	recommendedTime?: string | null
@@ -38,6 +39,7 @@ export type TaskItem = {
 	occurrenceCompletedAt?: string | null
 	occurrenceId?: string | null
 	occurrenceCompletedByUserId?: string | null
+	isOverdue?: boolean
 	schedule?: TaskSchedule | null
 }
 
@@ -49,6 +51,7 @@ export type TaskScheduleRequest = {
 	weekOfMonth?: number | null
 	timesPerWeek?: number | null
 	everyNDays?: number | null
+	interval?: number | null
 	availableFromTime?: string | null
 	availableUntilTime?: string | null
 	recommendedTime?: string | null

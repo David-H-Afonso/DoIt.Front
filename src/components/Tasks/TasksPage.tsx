@@ -84,6 +84,10 @@ export default function TasksPage() {
 					<option value='Weekday'>{t('tasks.weekly')}</option>
 					<option value='TimesPerWeek'>{t('quickCreate.xPerWeek')}</option>
 					<option value='EveryNDays'>{t('quickCreate.everyNDaysShort')}</option>
+					<option value='EveryNWeeks'>{t('quickCreate.everyNWeeks')}</option>
+					<option value='Monthly'>{t('quickCreate.monthlyDay')}</option>
+					<option value='EveryNMonths'>{t('quickCreate.everyNMonths')}</option>
+					<option value='EveryNYears'>{t('quickCreate.everyNYears')}</option>
 					<option value='MonthlyOrdinalWeekday'>{t('quickCreate.monthlyOrdinal')}</option>
 				</select>
 				<select aria-label={t('tasks.sort')} value={sortMode} onChange={(event) => setSortMode(event.target.value as SortMode)}>
@@ -97,7 +101,7 @@ export default function TasksPage() {
 			{!loading && visibleTasks.length === 0 ? <p className='empty-state'>{t('tasks.empty')}</p> : null}
 			{(['Overdue', 'Manual', 'Recurring'] as const).map((group) => {
 				const groupTasks = visibleTasks.filter((task) => {
-					const isOverdue = task.occurrenceStatus === 'Pending' && Boolean(task.occurrenceDate && task.occurrenceDate < new Date().toISOString().slice(0, 10))
+					const isOverdue = task.occurrenceStatus === 'Pending' && task.isOverdue === true
 					return group === 'Overdue' ? isOverdue : !isOverdue && (group === 'Manual' ? task.schedule?.recurrenceType === 'Manual' : task.schedule?.recurrenceType !== 'Manual')
 				})
 				if (groupTasks.length === 0) return null
@@ -127,7 +131,7 @@ function TaskInventoryRow({ task, canEdit, canAct, canUndo, onEdit, onMiss, onUn
 				<div className='task-inventory__meta'>
 					<span>{recurrence}{time}</span>
 					<span>{task.zoneName ?? t('quickCreate.noZone')}</span>
-					{task.occurrenceStatus === 'Pending' && task.occurrenceDate && task.occurrenceDate < new Date().toISOString().slice(0, 10)
+					{task.occurrenceStatus === 'Pending' && task.isOverdue
 						? <span className='task-inventory__overdue'>{t('tasks.notDone')} {formatDate(new Date(`${task.occurrenceDate}T00:00:00`))}</span>
 						: null}
 					{task.isArchived ? <span>{t('tasks.archivedLabel')}</span> : null}
@@ -164,10 +168,14 @@ function getRecurrenceLabel(type: string, schedule: NonNullable<TaskItem['schedu
 	if (type === 'Weekday') return replace(t('tasks.weekday'), t(`weekdays.${schedule.weekday ?? 0}`).toLocaleLowerCase())
 	if (type === 'TimesPerWeek') return replace(t('tasks.timesPerWeek'), String(schedule.timesPerWeek ?? 0))
 	if (type === 'EveryNDays') return replace(t('tasks.everyNDays'), String(schedule.everyNDays ?? 0))
+	if (type === 'EveryNWeeks') return replace(t('quickCreate.everyNWeeks'), String(schedule.interval ?? 0))
+	if (type === 'Monthly') return t('quickCreate.monthlyDay')
+	if (type === 'EveryNMonths') return replace(t('quickCreate.everyNMonths'), String(schedule.interval ?? 0))
+	if (type === 'EveryNYears') return replace(t('quickCreate.everyNYears'), String(schedule.interval ?? 0))
 	if (type === 'MonthlyOrdinalWeekday') return `${t(`quickCreate.ordinal.${schedule.weekOfMonth ?? 1}`)} ${t(`weekdays.${schedule.weekday ?? 0}`)}`
 	return t('tasks.oneOff')
 }
 
 function replace(template: string, value: string) {
-	return template.replace('{day}', value).replace('{count}', value)
+	return template.replace('{day}', value).replace('{count}', value).replace('X', value)
 }

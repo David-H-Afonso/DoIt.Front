@@ -31,6 +31,8 @@ export default function QuickCreateSheet() {
 	const [weekOfMonth, setWeekOfMonth] = useState('')
 	const [timesPerWeek, setTimesPerWeek] = useState('')
 	const [everyNDays, setEveryNDays] = useState('')
+	const [interval, setInterval] = useState('')
+	const [startDate, setStartDate] = useState(localDate())
 	const [availableFromTime, setAvailableFromTime] = useState('')
 	const [availableUntilTime, setAvailableUntilTime] = useState('')
 	const [recommendedTime, setRecommendedTime] = useState('')
@@ -58,11 +60,13 @@ export default function QuickCreateSheet() {
 			setWeekOfMonth('')
 			setTimesPerWeek('')
 			setEveryNDays('')
+			setInterval('')
+			setStartDate(localDate())
 			setAvailableFromTime('')
 			setAvailableUntilTime('')
 			setRecommendedTime('')
 			setTimeZoneId(getBrowserTimeZone())
-			setDetailsOpen(false)
+			setDetailsOpen(true)
 			setQuickZoneOpen(false)
 			return
 		}
@@ -78,6 +82,8 @@ export default function QuickCreateSheet() {
 		setWeekOfMonth(editingTask.schedule?.weekOfMonth?.toString() ?? '')
 		setTimesPerWeek(editingTask.schedule?.timesPerWeek?.toString() ?? '')
 		setEveryNDays(editingTask.schedule?.everyNDays?.toString() ?? '')
+		setInterval(editingTask.schedule?.interval?.toString() ?? '')
+		setStartDate(editingTask.schedule?.startDate ?? localDate())
 		setAvailableFromTime(toInputTime(editingTask.schedule?.availableFromTime, editingTask.schedule?.timeZoneId))
 		setAvailableUntilTime(toInputTime(editingTask.schedule?.availableUntilTime, editingTask.schedule?.timeZoneId))
 		setRecommendedTime(toInputTime(editingTask.schedule?.recommendedTime, editingTask.schedule?.timeZoneId))
@@ -110,10 +116,12 @@ export default function QuickCreateSheet() {
 				taskType: recurrence === 'Manual' ? 'OneTime' : 'Routine',
 				schedule: {
 					recurrenceType: recurrence,
+					startDate: startDate || localDate(),
 					weekday: weekday ? Number(weekday) : null,
 					weekOfMonth: recurrence === 'MonthlyOrdinalWeekday' && weekOfMonth ? Number(weekOfMonth) : null,
 					timesPerWeek: timesPerWeek ? Number(timesPerWeek) : null,
 					everyNDays: everyNDays ? Number(everyNDays) : null,
+					interval: interval ? Number(interval) : null,
 					availableFromTime: availableFromTime || null,
 					availableUntilTime: availableUntilTime || null,
 				recommendedTime: recommendedTime || null,
@@ -183,7 +191,7 @@ export default function QuickCreateSheet() {
 				<form onSubmit={submitTask} className='sheet-form composer-form'>
 					<label className='composer-title-field'>
 						<span>{t('quickCreate.taskTitle')}</span>
-						<input value={title} onChange={(event) => setTitle(event.target.value)} autoFocus />
+						<input name='title' value={title} onChange={(event) => setTitle(event.target.value)} autoFocus />
 					</label>
 
 					<button className='composer-disclosure' type='button' aria-expanded={detailsOpen} onClick={() => setDetailsOpen((open) => !open)}>
@@ -193,6 +201,11 @@ export default function QuickCreateSheet() {
 
 					{detailsOpen ? (
 						<div className='composer-details'>
+							<label className='composer-field'>
+								{t('quickCreate.startDate')}
+								<input name='startDate' value={startDate} onChange={(event) => setStartDate(event.target.value)} type='date' required />
+							</label>
+							<p className='composer-preview'>{formatSchedulePreview(recurrence, startDate, interval, t)}</p>
 							<label className='composer-field composer-field--full'>
 								{t('quickCreate.description')}
 								<input value={description} onChange={(event) => setDescription(event.target.value)} />
@@ -213,13 +226,17 @@ export default function QuickCreateSheet() {
 							</label> : null}
 							{recurrence === 'TimesPerWeek' ? <label className='composer-field'>
 								{t('quickCreate.timesPerWeek')}
-								<input min={1} max={14} value={timesPerWeek} onChange={(event) => setTimesPerWeek(event.target.value)} type='number' />
+								<input min={1} max={7} value={timesPerWeek} onChange={(event) => setTimesPerWeek(event.target.value)} type='number' />
 							</label> : null}
 							{recurrence === 'EveryNDays' ? <label className='composer-field'>
 								{t('quickCreate.everyNDays')}
 								<input min={1} value={everyNDays} onChange={(event) => setEveryNDays(event.target.value)} type='number' />
 							</label> : null}
-							{recurrence !== 'Manual' ? <>
+							{recurrence === 'EveryNWeeks' || recurrence === 'EveryNMonths' || recurrence === 'EveryNYears' ? <label className='composer-field'>
+								{t('quickCreate.interval')}
+								<input min={1} value={interval} onChange={(event) => setInterval(event.target.value)} type='number' required />
+							</label> : null}
+							<>
 							<label className='composer-field'>
 								{t('quickCreate.availableFrom')}
 								<input value={availableFromTime} onChange={(event) => setAvailableFromTime(event.target.value)} type='time' />
@@ -232,7 +249,7 @@ export default function QuickCreateSheet() {
 								<span>{t('quickCreate.recommendedTime')}</span>
 								<input value={recommendedTime} onChange={(event) => setRecommendedTime(event.target.value)} type='time' />
 							</label>
-							</> : null}
+							</>
 						</div>
 					) : null}
 
@@ -252,29 +269,21 @@ export default function QuickCreateSheet() {
 							</div>
 						</div>
 
-						<div className='composer-chip-group' aria-label={t('quickCreate.recurrence')}>
-							<span>{t('quickCreate.recurrence')}</span>
-							<div>
-								<button type='button' className={recurrence === 'Manual' ? 'is-active' : undefined} aria-pressed={recurrence === 'Manual'} onClick={() => { setRecurrence('Manual'); setDetailsOpen(false) }}>
-									{t('quickCreate.manual')}
-								</button>
-								<button type='button' className={recurrence === 'Daily' ? 'is-active' : undefined} aria-pressed={recurrence === 'Daily'} onClick={() => { setRecurrence('Daily'); setDetailsOpen(false) }}>
-									{t('quickCreate.daily')}
-								</button>
-								<button type='button' className={recurrence === 'Weekday' ? 'is-active' : undefined} aria-pressed={recurrence === 'Weekday'} onClick={() => { setRecurrence('Weekday'); setDetailsOpen(true) }}>
-									{t('quickCreate.weekly')}
-								</button>
-								<button type='button' className={recurrence === 'TimesPerWeek' ? 'is-active' : undefined} aria-pressed={recurrence === 'TimesPerWeek'} onClick={() => { setRecurrence('TimesPerWeek'); setDetailsOpen(true) }}>
-									{t('quickCreate.xPerWeek')}
-								</button>
-								<button type='button' className={recurrence === 'EveryNDays' ? 'is-active' : undefined} aria-pressed={recurrence === 'EveryNDays'} onClick={() => { setRecurrence('EveryNDays'); setDetailsOpen(true) }}>
-									{t('quickCreate.everyNDaysShort')}
-								</button>
-								<button type='button' className={recurrence === 'MonthlyOrdinalWeekday' ? 'is-active' : undefined} aria-pressed={recurrence === 'MonthlyOrdinalWeekday'} onClick={() => { setRecurrence('MonthlyOrdinalWeekday'); setDetailsOpen(true) }}>
-									{t('quickCreate.monthlyOrdinal')}
-								</button>
-							</div>
-						</div>
+						<label className='composer-field composer-field--full composer-recurrence-select'>
+							{t('quickCreate.recurrence')}
+							<select name='recurrence' value={recurrence} onChange={(event) => { setRecurrence(event.target.value); setDetailsOpen(true) }}>
+								<option value='Manual'>{t('quickCreate.manual')}</option>
+								<option value='Daily'>{t('quickCreate.daily')}</option>
+								<option value='Weekday'>{t('quickCreate.weekly')}</option>
+								<option value='TimesPerWeek'>{t('quickCreate.xPerWeek')}</option>
+								<option value='EveryNDays'>{t('quickCreate.everyNDaysShort')}</option>
+								<option value='EveryNWeeks'>{t('quickCreate.everyNWeeks')}</option>
+								<option value='Monthly'>{t('quickCreate.monthlyDay')}</option>
+								<option value='EveryNMonths'>{t('quickCreate.everyNMonths')}</option>
+								<option value='EveryNYears'>{t('quickCreate.everyNYears')}</option>
+								<option value='MonthlyOrdinalWeekday'>{t('quickCreate.monthlyOrdinal')}</option>
+							</select>
+						</label>
 					</div>
 
 					<label className='composer-field'>
@@ -345,6 +354,23 @@ export default function QuickCreateSheet() {
 
 function getBrowserTimeZone() {
 	return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+}
+
+function localDate() {
+	const date = new Date()
+	return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+function formatSchedulePreview(recurrence: string, startDate: string, interval: string, t: (key: string) => string) {
+	if (!startDate) return ''
+	const date = new Date(`${startDate}T12:00:00`)
+	const formatted = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'long', year: 'numeric' }).format(date)
+	const prefix = `${t('quickCreate.from')} ${formatted}`
+	if (recurrence === 'EveryNWeeks') return `${prefix}, ${t('quickCreate.everyNWeeksPreview').replace('{count}', interval || 'X')}`
+	if (recurrence === 'EveryNMonths') return `${prefix}, ${t('quickCreate.everyNMonthsPreview').replace('{count}', interval || 'X')}`
+	if (recurrence === 'EveryNYears') return `${prefix}, ${t('quickCreate.everyNYearsPreview').replace('{count}', interval || 'X')}`
+	if (recurrence === 'Monthly') return `${prefix}, ${t('quickCreate.monthlyDayPreview')}`
+	return prefix
 }
 
 function toInputTime(value?: string | null, timeZoneId?: string | null) {
