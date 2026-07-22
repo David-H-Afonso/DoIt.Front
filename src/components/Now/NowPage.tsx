@@ -85,7 +85,7 @@ export function TaskSection({ title, tasks, tone }: { title: string; tasks: NowT
 
 function FlatTaskList({ tasks }: { tasks: NowTask[] }) {
 	return <div className='zone-panel now-flat-list'>
-		{[...tasks].sort(compareTasks).map((task) => <NowTaskCard key={task.occurrenceId} task={task} tone={task.status} />)}
+		{[...tasks].sort(compareTasks).map((task) => <NowTaskCard key={task.occurrenceId} task={task} tone={getTaskTone(task)} />)}
 	</div>
 }
 
@@ -223,8 +223,10 @@ function getTimeLabel(task: NowTask, t: (key: string) => string) {
 }
 
 function compareTasks(left: NowTask, right: NowTask) {
-	const leftStatusRank = left.status === 'available' ? 0 : left.status === 'overdue' ? 1 : left.status === 'completed' ? 3 : 2
-	const rightStatusRank = right.status === 'available' ? 0 : right.status === 'overdue' ? 1 : right.status === 'completed' ? 3 : 2
+	const leftTone = getTaskTone(left)
+	const rightTone = getTaskTone(right)
+	const leftStatusRank = leftTone === 'available' ? 0 : leftTone === 'overdue' ? 1 : leftTone === 'completed' ? 3 : 2
+	const rightStatusRank = rightTone === 'available' ? 0 : rightTone === 'overdue' ? 1 : rightTone === 'completed' ? 3 : 2
 	if (leftStatusRank !== rightStatusRank) return leftStatusRank - rightStatusRank
 	const leftRank = left.recurrenceType === 'Manual' ? 2 : left.recommendedTime || left.availableFromTime || left.availableUntilTime ? 0 : 1
 	const rightRank = right.recurrenceType === 'Manual' ? 2 : right.recommendedTime || right.availableFromTime || right.availableUntilTime ? 0 : 1
@@ -233,6 +235,10 @@ function compareTasks(left: NowTask, right: NowTask) {
 	const rightTime = timeToMinutes(sortTime(right))
 	if (leftTime !== rightTime) return leftTime - rightTime
 	return left.title.localeCompare(right.title, 'es', { sensitivity: 'base' })
+}
+
+function getTaskTone(task: NowTask): NowTask['status'] {
+	return task.occurrenceStatus === 'Pending' ? task.status : 'completed'
 }
 
 function sortTime(task: NowTask) {

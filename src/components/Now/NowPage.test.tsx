@@ -90,4 +90,24 @@ describe('NowPage', () => {
 		expect(screen.getByText('Realizadas')).toBeInTheDocument()
 		expect(screen.getByText('Limpiar cocina')).toBeInTheDocument()
 	})
+
+	it('renders a completed overdue task as completed in the flat Me view', () => {
+		const store = configureStore({
+			reducer: { auth: authReducer, now: nowReducer, theme: themeReducer },
+			preloadedState: {
+				auth: { user: null, accessToken: null, refreshToken: null, accessTokenExpiresAt: null, refreshTokenExpiresAt: null, loading: false, error: null },
+				now: {
+					date: '2026-07-22', scope: 'me', progress: { total: 1, done: 1, missed: 0, notApplicable: 0, pending: 0 }, loading: false, error: null, lastLoadedAt: null,
+					zones: [{ zoneId: 'zone-1', zoneName: 'General', progress: { total: 1, done: 1, missed: 0, notApplicable: 0, pending: 0 }, overdue: [], available: [], unavailable: [], completed: [{ occurrenceId: 'occ-breakfast', id: 'breakfast', title: 'Desayuno gatos', zoneId: 'zone-1', zoneName: 'General', scope: 'House', assignmentMode: 'Anyone', assigneeIds: [], assigneeNames: [], status: 'overdue', occurrenceStatus: 'Done', availableUntilTime: '12:00:00' }] }],
+				},
+				theme: { mode: 'light', locale: 'es', primaryColor: '#2563eb' },
+			},
+		})
+
+		const { container } = render(<Provider store={store}><ToastProvider><MemoryRouter><NowPage /></MemoryRouter></ToastProvider></Provider>)
+
+		expect(screen.getByText('Desayuno gatos')).toBeInTheDocument()
+		expect(screen.getByRole('button', { name: 'Realizada' })).toBeDisabled()
+		expect(container.querySelector('.task-row--completed')).toBeInTheDocument()
+	})
 })
