@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '@/i18n'
 import type { NowProgress, NowTask, NowZone, OccurrenceAction } from '@/models/now'
@@ -15,19 +15,11 @@ type PendingAction = OccurrenceAction | 'undo'
 
 export default function NowPage() {
 	const { t, formatDate } = useI18n()
-	const dispatch = useAppDispatch()
-	const accessToken = useAppSelector((state) => state.auth.accessToken)
 	const { date, zones, upcoming, loading, error, scope } = useAppSelector((state) => state.now)
 	const displayZones = mergeUpcoming(zones, upcoming ?? [])
 	const visibleZones = displayZones.filter((zone) => zone.overdue.length > 0 || zone.available.length > 0 || zone.unavailable.length > 0 || (zone.completed?.length ?? 0) > 0)
 	const visibleTasks = visibleZones.flatMap((zone) => [...zone.overdue, ...zone.available, ...zone.unavailable, ...(zone.completed ?? [])])
 	const actionablePending = visibleTasks.filter((task) => task.occurrenceStatus === 'Pending').length
-
-	useEffect(() => {
-		if (accessToken) {
-			dispatch(fetchNow())
-		}
-	}, [accessToken, dispatch, scope])
 
 	const currentDate = date ? new Date(`${date}T00:00:00`) : new Date()
 
