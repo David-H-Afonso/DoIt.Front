@@ -26,6 +26,7 @@ export type NowTask = {
 	occurrenceDate?: string | null
 	completionTiming?: string | null
 	completedAt?: string | null
+	completedByUserId?: string | null
 }
 
 export type NowZone = {

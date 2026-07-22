@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { useEffect, type CSSProperties } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { useI18n } from '@/i18n'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { openQuickCreate } from '@/store/features/ui/uiSlice'
@@ -30,7 +30,9 @@ export default function AppShell() {
 	const accessTokenExpiresAt = useAppSelector((state) => state.auth.accessTokenExpiresAt)
 	const nowScope = useAppSelector((state) => state.now.scope)
 	const quickCreateOpen = useAppSelector((state) => state.ui.quickCreateOpen)
+	const [moreOpen, setMoreOpen] = useState(false)
 	const progress = useAppSelector((state) => state.now.progress)
+	const moreActive = [navItems[2], navItems[3], navItems[5], navItems[6]].some((item) => location.pathname === item.to || location.pathname.startsWith(`${item.to}/`))
 	const completion = progress.total > 0 ? Math.round(((progress.done + progress.notApplicable) / progress.total) * 100) : 0
 	const titleKey = location.pathname.startsWith('/zones')
 		? 'zones.title'
@@ -47,6 +49,10 @@ export default function AppShell() {
 				: 'now.title'
 	const showScope = location.pathname === '/' || location.pathname.startsWith('/now')
 	const isZoneDetail = location.pathname.startsWith('/zones/')
+
+	useEffect(() => {
+		setMoreOpen(false)
+	}, [location.pathname])
 
 	useEffect(() => {
 		if (accessToken) {
@@ -142,14 +148,24 @@ export default function AppShell() {
 						<path d='M12 5v14M5 12h14' />
 					</svg>
 				</button>
-				{[navItems[4], navItems[5]].map((item) => (
-					<NavLink key={item.to} to={item.to} className={({ isActive }) => `mobile-dock__item${isActive ? ' mobile-dock__item--active' : ''}`}>
-						<svg aria-hidden='true' viewBox='0 0 24 24'>
-							<path d={item.icon} />
-						</svg>
-						<span>{t(item.labelKey)}</span>
-					</NavLink>
-				))}
+				<NavLink key={navItems[4].to} to={navItems[4].to} className={({ isActive }) => `mobile-dock__item${isActive ? ' mobile-dock__item--active' : ''}`}>
+					<svg aria-hidden='true' viewBox='0 0 24 24'>
+						<path d={navItems[4].icon} />
+					</svg>
+					<span>{t(navItems[4].labelKey)}</span>
+				</NavLink>
+				<button className={`mobile-dock__item mobile-dock__more${moreOpen || moreActive ? ' mobile-dock__item--active' : ''}`} type='button' aria-expanded={moreOpen} aria-haspopup='menu' onClick={() => setMoreOpen((open) => !open)}>
+					<svg aria-hidden='true' viewBox='0 0 24 24'><path d='M5 12h.01M12 12h.01M19 12h.01' /></svg>
+					<span>{t('navigation.more')}</span>
+				</button>
+				{moreOpen ? <div className='mobile-dock__more-menu' role='menu'>
+					{[navItems[2], navItems[3], navItems[5], navItems[6]].map((item) => (
+						<NavLink key={item.to} to={item.to} role='menuitem' className={({ isActive }) => `mobile-dock__more-link${isActive ? ' is-active' : ''}`} onClick={() => setMoreOpen(false)}>
+							<svg aria-hidden='true' viewBox='0 0 24 24'><path d={item.icon} /></svg>
+							<span>{t(item.labelKey)}</span>
+						</NavLink>
+					))}
+				</div> : null}
 			</nav>
 
 			{quickCreateOpen ? <QuickCreateSheet /> : null}

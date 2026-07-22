@@ -11,15 +11,17 @@ import { openTaskEditor } from '@/store/features/ui/uiSlice'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { formatScheduleTime } from '@/utils/scheduleTime'
 
+type PendingAction = OccurrenceAction | 'undo'
+
 export default function NowPage() {
 	const { t, formatDate } = useI18n()
 	const dispatch = useAppDispatch()
 	const accessToken = useAppSelector((state) => state.auth.accessToken)
 	const { date, zones, upcoming, loading, error, scope } = useAppSelector((state) => state.now)
 	const displayZones = mergeUpcoming(zones, upcoming ?? [])
-	const visibleZones = displayZones.filter((zone) => zone.overdue.length > 0 || zone.available.length > 0 || zone.unavailable.length > 0)
-	const visibleTasks = visibleZones.flatMap((zone) => [...zone.overdue, ...zone.available, ...zone.unavailable])
-	const actionablePending = visibleTasks.length
+	const visibleZones = displayZones.filter((zone) => zone.overdue.length > 0 || zone.available.length > 0 || zone.unavailable.length > 0 || (zone.completed?.length ?? 0) > 0)
+	const visibleTasks = visibleZones.flatMap((zone) => [...zone.overdue, ...zone.available, ...zone.unavailable, ...(zone.completed ?? [])])
+	const actionablePending = visibleTasks.filter((task) => task.occurrenceStatus === 'Pending').length
 
 	useEffect(() => {
 		if (accessToken) {
@@ -46,7 +48,7 @@ export default function NowPage() {
 			{!loading && visibleZones.length === 0 ? <p className='empty-state'>{t('now.empty')}</p> : null}
 
 			<section className='zone-list'>
-				{scope === 'me' ? <FlatTaskList tasks={visibleTasks} /> : visibleZones.map((zone) => <NowZoneSection key={zone.zoneId ?? 'general'} zone={zone} />)}
+				{scope === 'me' ? <FlatTaskList tasks={visibleTasks} /> : visibleZones.map((zone) => <NowZoneSection key={zone.zoneId ?? 'general'} zone={zone} showCompleted />)}
 			</section>
 
 		</div>
@@ -100,12 +102,14 @@ export function NowTaskCard({ task, tone }: { task: NowTask; tone: NowTask['stat
 	const dispatch = useAppDispatch()
 	const { showToast } = useToast()
 	const accessToken = useAppSelector((state) => state.auth.accessToken)
+	const currentUser = useAppSelector((state) => state.auth.user)
 	const zones = useAppSelector((state) => state.now.zones)
 	const progress = useAppSelector((state) => state.now.progress)
-	const [pendingAction, setPendingAction] = useState<OccurrenceAction | null>(null)
+	const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
 	const timeLabel = getTimeLabel(task, t)
 	const isCompleted = tone === 'completed'
 	const isFuture = tone === 'unavailable' || tone === 'upcoming'
+	const canUndo = isCompleted && Boolean(currentUser && (task.completedByUserId === currentUser.id || currentUser.role === 'Admin' && task.scope === 'House'))
 
 	const applyAction = async (action: OccurrenceAction) => {
 			if (!accessToken || pendingAction) {
@@ -151,6 +155,22 @@ export function NowTaskCard({ task, tone }: { task: NowTask; tone: NowTask['stat
 		}
 	}
 
+	const undo = async () => {
+		if (!accessToken || pendingAction || !canUndo) return
+		setPendingAction('undo')
+		try {
+			const response = await OccurrenceService.undo(accessToken, task.occurrenceId)
+			if (response.userXp) dispatch(setXp(response.userXp))
+			dispatch(fetchTasks())
+			dispatch(fetchNow())
+			showToast({ type: 'success', title: t('toasts.undone') })
+		} catch {
+			showToast({ type: 'error', title: t('toasts.error') })
+		} finally {
+			setPendingAction(null)
+		}
+	}
+
 	return (
 		<article className={`task-row task-row--${tone}`}>
 			<button className={`task-check${isCompleted ? ' task-check--completed' : ''}`} type='button' disabled={isFuture || isCompleted || pendingAction !== null} onClick={() => applyAction('done')}>
@@ -162,6 +182,7 @@ export function NowTaskCard({ task, tone }: { task: NowTask; tone: NowTask['stat
 			</button>
 			{isFuture ? null : isCompleted ? <div className='task-secondary-actions task-secondary-actions--completed'>
 				<span className='task-completed-state'>{task.completionTiming === 'Early' ? t('now.doneEarly') : t('now.status.completed')}</span>
+				{canUndo ? <button className='secondary-action task-action task-action--compact' type='button' disabled={pendingAction !== null} onClick={() => void undo()}>{pendingAction === 'undo' ? t('common.loading') : t('common.undo')}</button> : null}
 				{task.completionTiming === 'Early' ? <button className='secondary-action task-action task-action--compact' type='button' disabled={pendingAction !== null} onClick={() => applyAction('notApplicable')}>{t('now.notApplicable')}</button> : null}
 			</div> : <div className='task-secondary-actions'>
 				{task.recurrenceType !== 'TimesPerWeek' ? <button className='secondary-action task-action task-action--compact' type='button' disabled={pendingAction !== null} onClick={() => applyAction('missed')}>
@@ -210,8 +231,8 @@ function getTimeLabel(task: NowTask, t: (key: string) => string) {
 }
 
 function compareTasks(left: NowTask, right: NowTask) {
-	const leftStatusRank = left.status === 'available' ? 0 : left.status === 'overdue' ? 1 : 2
-	const rightStatusRank = right.status === 'available' ? 0 : right.status === 'overdue' ? 1 : 2
+	const leftStatusRank = left.status === 'available' ? 0 : left.status === 'overdue' ? 1 : left.status === 'completed' ? 3 : 2
+	const rightStatusRank = right.status === 'available' ? 0 : right.status === 'overdue' ? 1 : right.status === 'completed' ? 3 : 2
 	if (leftStatusRank !== rightStatusRank) return leftStatusRank - rightStatusRank
 	const leftRank = left.recurrenceType === 'Manual' ? 2 : left.recommendedTime || left.availableFromTime || left.availableUntilTime ? 0 : 1
 	const rightRank = right.recurrenceType === 'Manual' ? 2 : right.recommendedTime || right.availableFromTime || right.availableUntilTime ? 0 : 1

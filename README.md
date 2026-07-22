@@ -1,6 +1,6 @@
 # DoIt Frontend
 
-React 19 + TypeScript + Vite frontend for DoIt `v0.2.0`.
+React 19 + TypeScript + Vite frontend for DoIt `v0.3.0`.
 
 ## Commands
 

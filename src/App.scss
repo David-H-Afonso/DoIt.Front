@@ -312,6 +312,24 @@ select:focus-visible {
 	gap: 18px;
 }
 
+.calendar-modal-backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 60;
+	display: grid;
+	place-items: center;
+	background: rgba(13, 18, 28, 0.48);
+	padding: 20px;
+}
+
+.calendar-modal {
+	width: min(100%, 680px);
+	max-height: min(850px, calc(100dvh - 40px));
+	overflow: auto;
+	border-radius: 24px;
+	box-shadow: 0 28px 80px rgba(13, 18, 28, 0.28);
+}
+
 .calendar-report,
 .calendar-empty-editor,
 .calendar-editor,
@@ -405,6 +423,10 @@ select:focus-visible {
 .calendar-editor__actions {
 	justify-content: flex-start;
 	margin-top: 20px;
+	position: sticky;
+	bottom: -18px;
+	background: var(--surface-raised);
+	padding: 12px 0 18px;
 }
 
 .calendar-alerts {
@@ -447,6 +469,17 @@ select:focus-visible {
 	.calendar-header {
 		align-items: start;
 		flex-direction: column;
+	}
+
+	.calendar-modal-backdrop {
+		align-items: end;
+		padding: 0;
+	}
+
+	.calendar-modal {
+		width: 100%;
+		max-height: calc(100dvh - 18px);
+		border-radius: 24px 24px 0 0;
 	}
 
 	.calendar-main {
@@ -1110,6 +1143,12 @@ progress {
 	opacity: 1;
 }
 
+.task-row--completed .task-row__main strong {
+	text-decoration: line-through;
+	text-decoration-thickness: 1px;
+	opacity: 0.7;
+}
+
 .task-completed-state {
 	align-self: center;
 	color: var(--color-success);
@@ -1739,6 +1778,52 @@ progress {
 	padding: 7px 8px;
 	box-shadow: 0 18px 54px rgba(31, 35, 43, 0.18);
 	backdrop-filter: blur(26px) saturate(1.25);
+}
+
+.mobile-dock__more {
+	position: relative;
+	border: 0;
+	background: transparent;
+}
+
+.mobile-dock__more-menu {
+	position: absolute;
+	right: 0;
+	bottom: calc(100% + 12px);
+	display: grid;
+	grid-template-columns: repeat(2, minmax(120px, 1fr));
+	gap: 6px;
+	width: min(300px, calc(100vw - 24px));
+	border: 1px solid var(--color-border);
+	border-radius: 20px;
+	background: var(--surface-raised);
+	padding: 8px;
+	box-shadow: 0 18px 54px rgba(31, 35, 43, 0.2);
+}
+
+.mobile-dock__more-link {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 44px;
+	border-radius: 13px;
+	color: var(--color-text-muted);
+	font-size: 0.75rem;
+	font-weight: 700;
+	padding: 0 10px;
+	text-decoration: none;
+}
+
+.mobile-dock__more-link svg {
+	width: 18px;
+	height: 18px;
+	flex: 0 0 auto;
+}
+
+.mobile-dock__more-link:hover,
+.mobile-dock__more-link.is-active {
+	background: color-mix(in srgb, var(--color-text) 9%, transparent);
+	color: var(--color-text);
 }
 
 .mobile-dock__item {

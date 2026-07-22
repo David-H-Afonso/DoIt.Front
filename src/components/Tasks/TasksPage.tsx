@@ -17,6 +17,7 @@ export default function TasksPage() {
 	const dispatch = useAppDispatch()
 	const { showToast } = useToast()
 	const accessToken = useAppSelector((state) => state.auth.accessToken)
+	const currentUser = useAppSelector((state) => state.auth.user)
 	const tasks = useAppSelector((state) => state.tasks.items)
 	const zones = useAppSelector((state) => state.zones.items.filter((zone) => !zone.isArchived))
 	const loading = useAppSelector((state) => state.tasks.loading)
@@ -103,7 +104,7 @@ export default function TasksPage() {
 				return <section className='task-inventory-group' key={group} aria-label={group === 'Overdue' ? t('tasks.overdue') : group === 'Manual' ? t('tasks.oneOff') : t('tasks.recurring')}>
 					<header><h2>{group === 'Overdue' ? t('tasks.overdue') : group === 'Manual' ? t('tasks.oneOff') : t('tasks.recurring')}</h2><span>{groupTasks.length}</span></header>
 					<div className='task-inventory'>
-						{groupTasks.map((task) => <TaskInventoryRow key={task.id} task={task} onEdit={() => dispatch(openTaskEditor(task.id))} onMiss={() => void markMissed(task)} onUndo={() => void undoOccurrence(task)} onArchive={() => dispatch(archiveTask(task.id))} onRestore={() => dispatch(restoreTask(task.id))} onDelete={() => {
+						{groupTasks.map((task) => <TaskInventoryRow key={task.id} task={task} canEdit={task.createdByUserId === currentUser?.id} canAct={canActOnTask(task, currentUser?.id, currentUser?.role)} canUndo={canUndoOccurrence(task, currentUser?.id, currentUser?.role)} onEdit={() => dispatch(openTaskEditor(task.id))} onMiss={() => void markMissed(task)} onUndo={() => void undoOccurrence(task)} onArchive={() => dispatch(archiveTask(task.id))} onRestore={() => dispatch(restoreTask(task.id))} onDelete={() => {
 							if (window.confirm(t('tasks.deleteConfirm'))) dispatch(deleteTask(task.id))
 						}} />)}
 					</div>
@@ -113,7 +114,7 @@ export default function TasksPage() {
 	)
 }
 
-function TaskInventoryRow({ task, onEdit, onMiss, onUndo, onArchive, onRestore, onDelete }: { task: TaskItem; onEdit: () => void; onMiss: () => void; onUndo: () => void; onArchive: () => void; onRestore: () => void; onDelete: () => void }) {
+function TaskInventoryRow({ task, canEdit, canAct, canUndo, onEdit, onMiss, onUndo, onArchive, onRestore, onDelete }: { task: TaskItem; canEdit: boolean; canAct: boolean; canUndo: boolean; onEdit: () => void; onMiss: () => void; onUndo: () => void; onArchive: () => void; onRestore: () => void; onDelete: () => void }) {
 	const { t, formatDate } = useI18n()
 	const schedule = task.schedule
 	const recurrence = schedule ? getRecurrenceLabel(schedule.recurrenceType, schedule, t) : t('tasks.oneOff')
@@ -137,14 +138,25 @@ function TaskInventoryRow({ task, onEdit, onMiss, onUndo, onArchive, onRestore, 
 				</div>
 			</div>
 			<div className='task-inventory__actions'>
-				<button className='secondary-action task-action--compact' type='button' onClick={onEdit}>{t('tasks.edit')}</button>
-				{task.occurrenceId && task.occurrenceStatus === 'Pending' && task.schedule?.recurrenceType !== 'TimesPerWeek' ? <button className='secondary-action task-action--compact' type='button' onClick={onMiss}>{t('now.miss')}</button> : null}
-				{task.occurrenceId && task.occurrenceStatus && task.occurrenceStatus !== 'Pending' ? <button className='secondary-action task-action--compact' type='button' onClick={onUndo}>{t('common.undo')}</button> : null}
-				{task.isArchived ? <button className='secondary-action task-action--compact' type='button' onClick={onRestore}>{t('tasks.restore')}</button> : <button className='link-action task-action--compact' type='button' onClick={onArchive}>{t('tasks.archive')}</button>}
-				<button className='danger-action task-action--compact' type='button' onClick={onDelete}>{t('tasks.delete')}</button>
+				{canEdit ? <button className='secondary-action task-action--compact' type='button' onClick={onEdit}>{t('tasks.edit')}</button> : null}
+				{canAct && task.occurrenceId && task.occurrenceStatus === 'Pending' && task.schedule?.recurrenceType !== 'TimesPerWeek' ? <button className='secondary-action task-action--compact' type='button' onClick={onMiss}>{t('now.miss')}</button> : null}
+				{canUndo && task.occurrenceId && task.occurrenceStatus && task.occurrenceStatus !== 'Pending' ? <button className='secondary-action task-action--compact' type='button' onClick={onUndo}>{t('common.undo')}</button> : null}
+				{canEdit ? (task.isArchived ? <button className='secondary-action task-action--compact' type='button' onClick={onRestore}>{t('tasks.restore')}</button> : <button className='link-action task-action--compact' type='button' onClick={onArchive}>{t('tasks.archive')}</button>) : null}
+				{canEdit ? <button className='danger-action task-action--compact' type='button' onClick={onDelete}>{t('tasks.delete')}</button> : null}
 			</div>
 		</article>
 	)
+}
+
+function canActOnTask(task: TaskItem, userId?: string, role?: string) {
+	if (!userId) return false
+	if (task.scope === 'Personal') return task.createdByUserId === userId
+	return role === 'Admin' || task.assignmentMode === 'Anyone' || task.assigneeIds.includes(userId)
+}
+
+function canUndoOccurrence(task: TaskItem, userId?: string, role?: string) {
+	if (!userId || !task.occurrenceCompletedByUserId) return false
+	return task.occurrenceCompletedByUserId === userId || role === 'Admin' && task.scope === 'House'
 }
 
 function getRecurrenceLabel(type: string, schedule: NonNullable<TaskItem['schedule']>, t: (key: string) => string) {

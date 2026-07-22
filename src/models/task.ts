@@ -37,6 +37,7 @@ export type TaskItem = {
 	occurrenceDate?: string | null
 	occurrenceCompletedAt?: string | null
 	occurrenceId?: string | null
+	occurrenceCompletedByUserId?: string | null
 	schedule?: TaskSchedule | null
 }
 

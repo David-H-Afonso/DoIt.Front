@@ -63,6 +63,15 @@ export default function CalendarPage() {
 		return () => window.clearInterval(timer)
 	}, [accessToken, events])
 
+	useEffect(() => {
+		if (!draft) return
+		const closeOnEscape = (event: KeyboardEvent) => {
+			if (event.key === 'Escape') setDraft(null)
+		}
+		window.addEventListener('keydown', closeOnEscape)
+		return () => window.removeEventListener('keydown', closeOnEscape)
+	}, [draft])
+
 	const openNew = (dateKey = selectedDate) => {
 		const start = new Date(`${dateKey}T10:00:00`)
 		const end = new Date(`${dateKey}T11:00:00`)
@@ -163,9 +172,14 @@ export default function CalendarPage() {
 				</div>
 				<div className='calendar-side'>
 					{report ? <section className='calendar-report'><span className='eyebrow'>{t('calendar.monthlyReport')}</span><div className='calendar-report__grid'><strong>{report.activeEvents}<small>{t('calendar.activeEvents')}</small></strong><strong>{report.totalEvents}<small>{t('calendar.totalEvents')}</small></strong><strong>{report.enabledReminders}<small>{t('calendar.reminders')}</small></strong><strong>{report.acknowledgedReminders}<small>{t('calendar.markedReminders')}</small></strong></div></section> : null}
-					{draft ? <EventEditor draft={draft} zones={zones} saving={saving} editing={Boolean(editingId)} onChange={setDraft} onSubmit={save} onDelete={editingId ? remove : undefined} onCancel={() => setDraft(null)} /> : <section className='calendar-empty-editor'><span className='eyebrow'>{selectedDate}</span><h2>{t('calendar.selectEvent')}</h2><p>{t('calendar.selectEventDescription')}</p><button className='secondary-action' type='button' onClick={() => openNew()}>{t('calendar.newEvent')}</button></section>}
+					<section className='calendar-empty-editor'><span className='eyebrow'>{selectedDate}</span><h2>{t('calendar.selectEvent')}</h2><p>{t('calendar.selectEventDescription')}</p><button className='secondary-action' type='button' onClick={() => openNew()}>{t('calendar.newEvent')}</button></section>
 				</div>
 			</section>
+			{draft ? <div className='calendar-modal-backdrop' role='presentation' onMouseDown={() => setDraft(null)}>
+				<div className='calendar-modal' role='dialog' aria-modal='true' aria-labelledby='calendar-editor-title' onMouseDown={(event) => event.stopPropagation()}>
+					<EventEditor draft={draft} zones={zones} saving={saving} editing={Boolean(editingId)} onChange={setDraft} onSubmit={save} onDelete={editingId ? remove : undefined} onCancel={() => setDraft(null)} />
+				</div>
+			</div> : null}
 		</div>
 	)
 	}
@@ -182,7 +196,7 @@ function EventEditor({ draft, zones, saving, editing, onChange, onSubmit, onDele
 	const { t } = useI18n()
 	const update = <K extends keyof EventDraft>(key: K, value: EventDraft[K]) => onChange({ ...draft, [key]: value })
 	return <form className='calendar-editor' onSubmit={onSubmit}>
-		<div className='calendar-editor__heading'><div><span className='eyebrow'>{editing ? t('calendar.editEvent') : t('calendar.newEvent')}</span><h2>{t('calendar.eventDetails')}</h2></div><button type='button' className='icon-button' onClick={onCancel} aria-label={t('common.close')}>×</button></div>
+		<div className='calendar-editor__heading'><div><span className='eyebrow'>{editing ? t('calendar.editEvent') : t('calendar.newEvent')}</span><h2 id='calendar-editor-title'>{t('calendar.eventDetails')}</h2></div><button type='button' className='icon-button' onClick={onCancel} aria-label={t('common.close')}>×</button></div>
 		<label>{t('calendar.eventTitle')}<input value={draft.title} onChange={(event) => update('title', event.target.value)} maxLength={220} required /></label>
 		<label>{t('calendar.description')}<textarea value={draft.description} onChange={(event) => update('description', event.target.value)} rows={3} maxLength={2000} /></label>
 		<label>{t('calendar.zone')}<select value={draft.zoneId ?? ''} onChange={(event) => update('zoneId', event.target.value || null)}><option value=''>{t('calendar.noZone')}</option>{zones.map((zone) => <option key={zone.id} value={zone.id}>{zone.name}</option>)}</select></label>
