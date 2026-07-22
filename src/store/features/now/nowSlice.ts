@@ -11,6 +11,7 @@ type NowState = {
 	loading: boolean
 	error: string | null
 	lastLoadedAt: string | null
+	requestId: string | null
 }
 
 const emptyProgress: NowProgress = {
@@ -30,6 +31,7 @@ const initialState: NowState = {
 	loading: false,
 	error: null,
 	lastLoadedAt: null,
+	requestId: null,
 }
 
 type FetchNowRequest = {
@@ -79,7 +81,9 @@ export const nowSlice = createSlice({
 						continue
 					}
 
-					bucket.splice(index, 1)
+					const [task] = bucket.splice(index, 1)
+					const completedTask = { ...task, status: 'completed' as const, occurrenceStatus: action.payload.status }
+					zone.completed = [...(zone.completed ?? []), completedTask]
 					zone.progress.pending = Math.max(0, zone.progress.pending - 1)
 					state.progress.pending = Math.max(0, state.progress.pending - 1)
 					if (action.payload.status === 'Done') {
@@ -103,15 +107,18 @@ export const nowSlice = createSlice({
 	},
 	extraReducers: (builder) => {
 		builder
-			.addCase(fetchNow.pending, (state) => {
+			.addCase(fetchNow.pending, (state, action) => {
 				state.loading = true
 				state.error = null
+				state.requestId = action.meta.requestId
 			})
-			.addCase(fetchNow.fulfilled, (state, action: PayloadAction<NowResponse>) => {
+			.addCase(fetchNow.fulfilled, (state, action) => {
+				if (action.meta.requestId !== state.requestId) return
 				state.loading = false
 				applyNow(state, action.payload)
 			})
 			.addCase(fetchNow.rejected, (state, action) => {
+				if (action.meta.requestId !== state.requestId) return
 				state.loading = false
 				state.error = action.error.message ?? 'Failed to load now'
 			})
