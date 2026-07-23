@@ -612,6 +612,58 @@ select:focus-visible {
 	color: #1d1d1d;
 }
 
+.household-consent-card {
+	width: min(100%, 520px);
+}
+
+.household-consent-card__client {
+	display: grid;
+	place-items: center;
+	width: 48px;
+	height: 48px;
+	border-radius: 15px;
+	background: #1d1d1d;
+	color: #fff;
+	font-size: 1.2rem;
+	font-weight: 850;
+}
+
+.household-consent-card__account {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	border: 1px solid rgba(29, 29, 29, 0.12);
+	border-radius: 14px;
+	padding: 13px 14px;
+}
+
+.household-consent-card__account span,
+.household-consent-card__note {
+	color: #666;
+	font-size: 0.84rem;
+}
+
+.household-consent-card h2 {
+	margin: 0 0 10px;
+	font-size: 0.9rem;
+}
+
+.household-consent-card__scopes {
+	display: grid;
+	gap: 9px;
+	margin: 0;
+	padding-left: 22px;
+	color: #353535;
+	font-size: 0.9rem;
+}
+
+.household-consent-card__actions {
+	display: grid;
+	grid-template-columns: 1fr 1.35fr;
+	gap: 10px;
+}
+
 .app-kicker,
 .eyebrow {
 	color: var(--color-text-muted);

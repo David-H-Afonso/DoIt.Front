@@ -18,6 +18,25 @@
     "allAssignees": "Everyone must complete it",
     "assigned": "Assigned"
   },
+  "householdConsent": {
+    "kicker": "Account connection",
+    "title": "Connect DoIt to Household",
+    "description": "Household is requesting limited access to this DoIt account.",
+    "account": "DoIt account",
+    "permissions": "Requested permissions",
+    "note": "You can deny this request. DoIt never shares your password, and this screen never receives integration tokens.",
+    "approve": "Allow and continue",
+    "deny": "Deny",
+    "invalidRequest": "This connection request is invalid.",
+    "error": "Authorization could not be completed.",
+    "scopes": {
+      "profileRead": "View your name and this connection's identity",
+      "tasksRead": "View the House task summary",
+      "tasksComplete": "Complete House tasks available to you",
+      "tasksUndo": "Undo your actions on House tasks",
+      "tasksCreate": "Create House tasks assigned to anyone"
+    }
+  },
   "common": {
     "cancel": "Cancel",
     "create": "Create",

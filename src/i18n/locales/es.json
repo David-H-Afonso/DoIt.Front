@@ -18,6 +18,25 @@
     "allAssignees": "Todos tienen que completarla",
     "assigned": "Asignada"
   },
+  "householdConsent": {
+    "kicker": "Conexión de cuenta",
+    "title": "Conectar DoIt con Household",
+    "description": "Household solicita acceso limitado a esta cuenta de DoIt.",
+    "account": "Cuenta de DoIt",
+    "permissions": "Permisos solicitados",
+    "note": "Puedes denegar la solicitud. DoIt no comparte tu contraseña y esta pantalla no recibe tokens de integración.",
+    "approve": "Permitir y continuar",
+    "deny": "Denegar",
+    "invalidRequest": "La solicitud de conexión no es válida.",
+    "error": "No se pudo completar la autorización.",
+    "scopes": {
+      "profileRead": "Ver tu nombre y la identidad de esta conexión",
+      "tasksRead": "Ver el resumen de tareas de Casa",
+      "tasksComplete": "Completar tareas de Casa disponibles para ti",
+      "tasksUndo": "Deshacer tus acciones sobre tareas de Casa",
+      "tasksCreate": "Crear tareas de Casa asignadas a cualquiera"
+    }
+  },
   "common": {
     "cancel": "Cancelar",
     "create": "Crear",

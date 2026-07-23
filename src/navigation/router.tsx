@@ -11,6 +11,7 @@ import ZoneDetailPage from '@/components/Zones/ZoneDetailPage'
 import ZonesPage from '@/components/Zones/ZonesPage'
 import StatisticsPage from '@/components/Statistics/StatisticsPage'
 import CalendarPage from '@/components/Calendar/CalendarPage'
+import HouseholdAuthorizePage from '@/components/Integrations/HouseholdAuthorizePage'
 
 export const router = createBrowserRouter([
 	{
@@ -25,6 +26,10 @@ export const router = createBrowserRouter([
 			{
 				element: <ProtectedRoute />,
 				children: [
+					{
+						path: 'integrations/household/authorize',
+						element: <HouseholdAuthorizePage />,
+					},
 					{
 						element: <AppShell />,
 						children: [

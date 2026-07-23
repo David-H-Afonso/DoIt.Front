@@ -6,6 +6,11 @@ export const apiRoutes = {
 		logout: '/api/auth/logout',
 		me: '/api/auth/me',
 	},
+	integrations: {
+		household: {
+			authorize: '/api/integrations/household/v1/authorize',
+		},
+	},
 	now: '/api/now',
 	occurrences: {
 		complete: (id: string) => `/api/occurrences/${id}/complete`,

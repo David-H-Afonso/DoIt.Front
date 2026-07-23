@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { useI18n } from '@/i18n'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { login, register } from '@/store/features/auth/authSlice'
@@ -9,13 +9,14 @@ export default function LoginPage() {
 	const { t, locale } = useI18n()
 	const dispatch = useAppDispatch()
 	const { accessToken, loading, error } = useAppSelector((state) => state.auth)
+	const [searchParams] = useSearchParams()
 	const [mode, setMode] = useState<'login' | 'register'>('login')
 	const [username, setUsername] = useState('')
 	const [displayName, setDisplayName] = useState('')
 	const [password, setPassword] = useState('')
 
 	if (accessToken) {
-		return <Navigate to='/now' replace />
+		return <Navigate to={safeReturnTo(searchParams.get('returnTo'))} replace />
 	}
 
 	const submit = (event: FormEvent) => {
@@ -63,4 +64,8 @@ export default function LoginPage() {
 			</form>
 		</main>
 	)
+}
+
+function safeReturnTo(value: string | null) {
+	return value && value.startsWith('/') && !value.startsWith('//') && value.length <= 4096 ? value : '/now'
 }
