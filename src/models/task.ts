@@ -40,7 +40,16 @@ export type TaskItem = {
 	occurrenceId?: string | null
 	occurrenceCompletedByUserId?: string | null
 	isOverdue?: boolean
+	upcomingOccurrence?: TaskOccurrenceSummary | null
 	schedule?: TaskSchedule | null
+}
+
+export type TaskOccurrenceSummary = {
+	id: string
+	date: string
+	status: 'Pending' | 'Done' | 'Missed' | 'NotApplicable'
+	completedAt?: string | null
+	completedByUserId?: string | null
 }
 
 export type TaskScheduleRequest = {

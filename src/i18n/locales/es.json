@@ -91,7 +91,7 @@
       "overdue": "Vencida",
       "available": "Disponible",
       "unavailable": "Espera",
-      "completed": "Realizada"
+    "completed": "Realizada"
     }
   },
   "profile": {
@@ -332,6 +332,7 @@
     "taskUpdated": "Tarea actualizada",
     "zoneCreated": "Zona creada",
     "done": "Tarea completada",
+    "doneEarly": "Tarea completada antes",
     "missed": "Tarea marcada como no hecha",
     "undone": "Tarea restaurada",
     "notApplicable": "Tarea marcada como no aplicable",
@@ -377,6 +378,9 @@
     "weekly": "Cada semana",
     "weekday": "Cada {day}",
     "timesPerWeek": "{count} veces por semana",
-    "everyNDays": "Cada {count} días"
+    "everyNDays": "Cada {count} días",
+    "completedEarly": "Hecha antes",
+    "nextOccurrence": "Próxima:",
+    "completeEarly": "Hacer antes"
   }
 }

@@ -8,6 +8,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { OccurrenceService } from '@/services'
 import type { TaskItem } from '@/models/task'
 import { formatScheduleTime } from '@/utils/scheduleTime'
+import { setXp } from '@/store/features/xp/xpSlice'
 
 type StatusFilter = 'active' | 'archived'
 type SortMode = 'alphabetical' | 'createdDesc' | 'createdAsc'
@@ -34,6 +35,35 @@ export default function TasksPage() {
 			dispatch(fetchTasks())
 			dispatch(fetchNow())
 			showToast({ type: 'success', title: t('toasts.missed') })
+		} catch {
+			showToast({ type: 'error', title: t('toasts.error') })
+		}
+	}
+
+	const completeEarly = async (task: TaskItem) => {
+		const occurrence = task.upcomingOccurrence
+		if (!accessToken || !occurrence || occurrence.status !== 'Pending') return
+		try {
+			const response = await OccurrenceService.completeEarly(accessToken, occurrence.id)
+			if (response.userXp) {
+				dispatch(setXp(response.userXp))
+			}
+			dispatch(fetchTasks())
+			dispatch(fetchNow())
+			showToast({ type: 'success', title: t('toasts.doneEarly') })
+		} catch {
+			showToast({ type: 'error', title: t('toasts.error') })
+		}
+	}
+
+	const undoUpcoming = async (task: TaskItem) => {
+		const occurrence = task.upcomingOccurrence
+		if (!accessToken || !occurrence || !canUndoOccurrenceSummary(task, currentUser?.id, currentUser?.role)) return
+		try {
+			await OccurrenceService.undo(accessToken, occurrence.id)
+			dispatch(fetchTasks())
+			dispatch(fetchNow())
+			showToast({ type: 'success', title: t('toasts.undone') })
 		} catch {
 			showToast({ type: 'error', title: t('toasts.error') })
 		}
@@ -108,7 +138,7 @@ export default function TasksPage() {
 				return <section className='task-inventory-group' key={group} aria-label={group === 'Overdue' ? t('tasks.overdue') : group === 'Manual' ? t('tasks.oneOff') : t('tasks.recurring')}>
 					<header><h2>{group === 'Overdue' ? t('tasks.overdue') : group === 'Manual' ? t('tasks.oneOff') : t('tasks.recurring')}</h2><span>{groupTasks.length}</span></header>
 					<div className='task-inventory'>
-						{groupTasks.map((task) => <TaskInventoryRow key={task.id} task={task} canEdit={task.createdByUserId === currentUser?.id} canAct={canActOnTask(task, currentUser?.id, currentUser?.role)} canUndo={canUndoOccurrence(task, currentUser?.id, currentUser?.role)} onEdit={() => dispatch(openTaskEditor(task.id))} onMiss={() => void markMissed(task)} onUndo={() => void undoOccurrence(task)} onArchive={() => dispatch(archiveTask(task.id))} onRestore={() => dispatch(restoreTask(task.id))} onDelete={() => {
+						{groupTasks.map((task) => <TaskInventoryRow key={task.id} task={task} canEdit={task.createdByUserId === currentUser?.id} canAct={canActOnTask(task, currentUser?.id, currentUser?.role)} canUndo={canUndoOccurrence(task, currentUser?.id, currentUser?.role)} canUndoUpcoming={canUndoOccurrenceSummary(task, currentUser?.id, currentUser?.role)} onEdit={() => dispatch(openTaskEditor(task.id))} onMiss={() => void markMissed(task)} onUndo={() => void undoOccurrence(task)} onCompleteEarly={() => void completeEarly(task)} onUndoUpcoming={() => void undoUpcoming(task)} onArchive={() => dispatch(archiveTask(task.id))} onRestore={() => dispatch(restoreTask(task.id))} onDelete={() => {
 							if (window.confirm(t('tasks.deleteConfirm'))) dispatch(deleteTask(task.id))
 						}} />)}
 					</div>
@@ -118,7 +148,7 @@ export default function TasksPage() {
 	)
 }
 
-function TaskInventoryRow({ task, canEdit, canAct, canUndo, onEdit, onMiss, onUndo, onArchive, onRestore, onDelete }: { task: TaskItem; canEdit: boolean; canAct: boolean; canUndo: boolean; onEdit: () => void; onMiss: () => void; onUndo: () => void; onArchive: () => void; onRestore: () => void; onDelete: () => void }) {
+function TaskInventoryRow({ task, canEdit, canAct, canUndo, canUndoUpcoming, onEdit, onMiss, onUndo, onCompleteEarly, onUndoUpcoming, onArchive, onRestore, onDelete }: { task: TaskItem; canEdit: boolean; canAct: boolean; canUndo: boolean; canUndoUpcoming: boolean; onEdit: () => void; onMiss: () => void; onUndo: () => void; onCompleteEarly: () => void; onUndoUpcoming: () => void; onArchive: () => void; onRestore: () => void; onDelete: () => void }) {
 	const { t, formatDate } = useI18n()
 	const schedule = task.schedule
 	const recurrence = schedule ? getRecurrenceLabel(schedule.recurrenceType, schedule, t) : t('tasks.oneOff')
@@ -131,6 +161,9 @@ function TaskInventoryRow({ task, canEdit, canAct, canUndo, onEdit, onMiss, onUn
 				<div className='task-inventory__meta'>
 					<span>{recurrence}{time}</span>
 					<span>{task.zoneName ?? t('quickCreate.noZone')}</span>
+					{task.upcomingOccurrence ? <span className={task.upcomingOccurrence.status === 'Done' ? 'task-inventory__early' : 'task-inventory__upcoming'}>
+						{task.upcomingOccurrence.status === 'Done' ? t('tasks.completedEarly') : `${t('tasks.nextOccurrence')} ${formatDate(new Date(`${task.upcomingOccurrence.date}T00:00:00`))}`}
+					</span> : null}
 					{task.occurrenceStatus === 'Pending' && task.isOverdue
 						? <span className='task-inventory__overdue'>{t('tasks.notDone')} {formatDate(new Date(`${task.occurrenceDate}T00:00:00`))}</span>
 						: null}
@@ -143,6 +176,8 @@ function TaskInventoryRow({ task, canEdit, canAct, canUndo, onEdit, onMiss, onUn
 			</div>
 			<div className='task-inventory__actions'>
 				{canEdit ? <button className='secondary-action task-action--compact' type='button' onClick={onEdit}>{t('tasks.edit')}</button> : null}
+				{canAct && task.upcomingOccurrence?.status === 'Pending' ? <button className='secondary-action task-action--compact' type='button' onClick={onCompleteEarly}>{t('tasks.completeEarly')}</button> : null}
+				{canUndoUpcoming && task.upcomingOccurrence?.status === 'Done' ? <button className='secondary-action task-action--compact' type='button' onClick={onUndoUpcoming}>{t('common.undo')}</button> : null}
 				{canAct && task.occurrenceId && task.occurrenceStatus === 'Pending' && task.schedule?.recurrenceType !== 'TimesPerWeek' ? <button className='secondary-action task-action--compact' type='button' onClick={onMiss}>{t('now.miss')}</button> : null}
 				{canUndo && task.occurrenceId && task.occurrenceStatus && task.occurrenceStatus !== 'Pending' ? <button className='secondary-action task-action--compact' type='button' onClick={onUndo}>{t('common.undo')}</button> : null}
 				{canEdit ? (task.isArchived ? <button className='secondary-action task-action--compact' type='button' onClick={onRestore}>{t('tasks.restore')}</button> : <button className='link-action task-action--compact' type='button' onClick={onArchive}>{t('tasks.archive')}</button>) : null}
@@ -161,6 +196,13 @@ function canActOnTask(task: TaskItem, userId?: string, role?: string) {
 function canUndoOccurrence(task: TaskItem, userId?: string, role?: string) {
 	if (!userId || !task.occurrenceCompletedByUserId) return false
 	return task.occurrenceCompletedByUserId === userId || role === 'Admin' && task.scope === 'House'
+}
+
+function canUndoOccurrenceSummary(task: TaskItem, userId?: string, role?: string) {
+	const occurrence = task.upcomingOccurrence
+	if (!occurrence) return false
+	if (!userId || !occurrence.completedByUserId) return false
+	return occurrence.completedByUserId === userId || role === 'Admin' && task.scope === 'House'
 }
 
 function getRecurrenceLabel(type: string, schedule: NonNullable<TaskItem['schedule']>, t: (key: string) => string) {

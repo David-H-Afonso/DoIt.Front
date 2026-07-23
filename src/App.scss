@@ -1037,6 +1037,15 @@ progress {
 	font-weight: 760;
 }
 
+.task-inventory__upcoming,
+.task-inventory__early {
+	font-weight: 720;
+}
+
+.task-inventory__early {
+	color: var(--color-primary);
+}
+
 .task-inventory__history {
 	display: flex;
 	flex-wrap: wrap;

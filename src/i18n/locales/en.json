@@ -85,7 +85,7 @@
       "overdue": "Overdue",
       "available": "Available now",
       "unavailable": "Not available yet",
-      "completed": "Completed"
+    "completed": "Completed"
     },
     "status": {
       "overdue": "Overdue",
@@ -285,6 +285,9 @@
     "timeline": "Timeline",
     "byTask": "By task",
     "completed": "Completed",
+    "completedEarly": "Completed early",
+    "nextOccurrence": "Next:",
+    "completeEarly": "Do early",
     "early": "Early",
     "late": "Late",
     "overdue": "Overdue",
@@ -332,6 +335,7 @@
     "taskUpdated": "Task updated",
     "zoneCreated": "Zone created",
     "done": "Task completed",
+    "doneEarly": "Task completed early",
     "missed": "Task marked missed",
     "undone": "Task restored",
     "notApplicable": "Task marked not applicable",
@@ -377,6 +381,9 @@
     "weekly": "Weekly",
     "weekday": "Every {day}",
     "timesPerWeek": "{count} times per week",
-    "everyNDays": "Every {count} days"
+    "everyNDays": "Every {count} days",
+    "completedEarly": "Completed early",
+    "nextOccurrence": "Next:",
+    "completeEarly": "Do early"
   }
 }
