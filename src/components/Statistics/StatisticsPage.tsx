@@ -3,6 +3,7 @@ import { useI18n } from '@/i18n'
 import type { StatisticsOccurrence, StatisticsResponse, StatisticsSummary } from '@/models/statistics'
 import { StatisticsService } from '@/services'
 import { useAppSelector } from '@/store/hooks'
+import { formatInstant } from '@/utils/scheduleTime'
 
 type Period = 'day' | 'week' | 'month'
 
@@ -91,13 +92,13 @@ function TaskRow({ task }: { task: { title: string; zoneName?: string | null; su
 	return <article className='statistics-task'>
 		<div className='statistics-task__heading'><div><strong>{task.title}</strong><span>{task.zoneName ?? t('statistics.noZone')}</span></div><b>{task.summary.completionRate}%</b></div>
 		<div className='statistics-task__bar'><span style={{ width: `${Math.min(task.summary.completionRate, 100)}%` }} /></div>
-		<div className='statistics-task__meta'><span>{task.summary.completed} {t('statistics.timesCompleted')}</span><span>{task.summary.completedOverdue} {t('statistics.overdue').toLowerCase()}</span><span>{lastCompleted ? new Date(lastCompleted.completedAt!).toLocaleString() : t('statistics.noCompletions')}</span></div>
+				<div className='statistics-task__meta'><span>{task.summary.completed} {t('statistics.timesCompleted')}</span><span>{task.summary.completedOverdue} {t('statistics.overdue').toLowerCase()}</span><span>{lastCompleted ? formatInstant(lastCompleted.completedAt, lastCompleted.timeZoneId) : t('statistics.noCompletions')}</span></div>
 		{task.occurrences.length > 0 ? <details className='statistics-task__details'>
 			<summary>{t('statistics.viewDetails')}</summary>
 			<div className='statistics-occurrences'>
 				{task.occurrences.map((occurrence) => <div className='statistics-occurrence' key={`${occurrence.occurrenceId ?? occurrence.scheduledDate}-${occurrence.completedAt ?? occurrence.status}`}>
 					<strong>{new Date(`${occurrence.scheduledDate}T00:00:00`).toLocaleDateString()}</strong>
-					<span>{occurrence.completedAt ? new Date(occurrence.completedAt).toLocaleString() : t(`statistics.status.${occurrence.status}`)}</span>
+					<span>{occurrence.completedAt ? formatInstant(occurrence.completedAt, occurrence.timeZoneId) : t(`statistics.status.${occurrence.status}`)}</span>
 					<em>{t(`statistics.timing.${occurrence.timing}`)}{occurrence.differenceMinutes ? ` · ${formatDifference(occurrence.differenceMinutes)}` : ''}</em>
 				</div>)}
 			</div>

@@ -7,7 +7,7 @@ import { openTaskEditor } from '@/store/features/ui/uiSlice'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { OccurrenceService } from '@/services'
 import type { TaskItem } from '@/models/task'
-import { formatScheduleTime } from '@/utils/scheduleTime'
+import { formatInstant, formatScheduleTime } from '@/utils/scheduleTime'
 import { setXp } from '@/store/features/xp/xpSlice'
 
 type StatusFilter = 'active' | 'archived'
@@ -171,7 +171,7 @@ function TaskInventoryRow({ task, canEdit, canAct, canUndo, canUndoUpcoming, onE
 				</div>
 				<div className='task-inventory__history'>
 					<span>{t('tasks.created')} {formatDate(new Date(task.createdAt))}</span>
-					{task.occurrenceCompletedAt ? <span>{t('tasks.completed')} {new Date(task.occurrenceCompletedAt).toLocaleString()}</span> : null}
+					{task.occurrenceCompletedAt ? <span>{t('tasks.completed')} {formatInstant(task.occurrenceCompletedAt, task.schedule?.timeZoneId)}</span> : null}
 				</div>
 			</div>
 			<div className='task-inventory__actions'>

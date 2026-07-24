@@ -3,6 +3,7 @@ import { useI18n } from '@/i18n'
 import type { ReviewTask } from '@/models/review'
 import { fetchReview } from '@/store/features/review/reviewSlice'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { formatInstant } from '@/utils/scheduleTime'
 
 export default function ReviewPage() {
 	const { t, formatDate } = useI18n()
@@ -80,7 +81,7 @@ function ReviewSection({ title, tasks }: { title: string; tasks: ReviewTask[] })
 					<div className='task-row__main'>
 						<strong>{task.title}</strong>
 						<span>{task.completedBy ?? task.zoneName ?? task.status}</span>
-						{task.taskCreatedAt ? <small>{t('review.created')}: {new Date(task.taskCreatedAt).toLocaleDateString()} {task.completedAt ? ` · ${t('review.completed')}: ${new Date(task.completedAt).toLocaleString()}` : ''}</small> : null}
+						{task.taskCreatedAt ? <small>{t('review.created')}: {new Date(task.taskCreatedAt).toLocaleDateString()} {task.completedAt ? ` · ${t('review.completed')}: ${formatInstant(task.completedAt)}` : ''}</small> : null}
 					</div>
 					{task.xpEarned > 0 ? <small>+{task.xpEarned} XP</small> : null}
 				</article>
