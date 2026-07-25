@@ -33,7 +33,9 @@ export function formatScheduleTime(value: string | null | undefined, sourceTimeZ
 
 export function formatInstant(value: string | null | undefined, timeZone?: string | null) {
 	if (!value) return ''
-	const date = new Date(value)
+	const normalized = value.trim()
+	const hasTimeZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(normalized)
+	const date = new Date(hasTimeZone ? normalized : `${normalized}Z`)
 	if (Number.isNaN(date.getTime())) return ''
 	return new Intl.DateTimeFormat(undefined, {
 		dateStyle: 'medium',
