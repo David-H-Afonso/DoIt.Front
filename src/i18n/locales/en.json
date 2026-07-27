@@ -34,7 +34,8 @@
       "tasksRead": "View the House task summary",
       "tasksComplete": "Complete House tasks available to you",
       "tasksUndo": "Undo your actions on House tasks",
-      "tasksCreate": "Create House tasks assigned to anyone"
+      "tasksCreate": "Create House tasks assigned to anyone",
+      "calendarRead": "View your DoIt calendar events"
     }
   },
   "common": {

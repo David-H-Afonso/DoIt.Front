@@ -6,13 +6,14 @@ import type { HouseholdAuthorizeRequest, HouseholdAuthorizeResponse } from '@/mo
 import { HouseholdIntegrationService } from '@/services/HouseholdIntegrationService'
 import { useAppSelector } from '@/store/hooks'
 
-const allowedScopes = new Set(['profile.read', 'tasks.read', 'tasks.complete', 'tasks.undo', 'tasks.create'])
+const allowedScopes = new Set(['profile.read', 'tasks.read', 'tasks.complete', 'tasks.undo', 'tasks.create', 'calendar.read'])
 const scopeTranslationKeys: Record<string, string> = {
 	'profile.read': 'profileRead',
 	'tasks.read': 'tasksRead',
 	'tasks.complete': 'tasksComplete',
 	'tasks.undo': 'tasksUndo',
 	'tasks.create': 'tasksCreate',
+	'calendar.read': 'calendarRead',
 }
 
 type Props = {

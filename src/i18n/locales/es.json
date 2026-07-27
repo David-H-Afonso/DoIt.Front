@@ -34,7 +34,8 @@
       "tasksRead": "Ver el resumen de tareas de Casa",
       "tasksComplete": "Completar tareas de Casa disponibles para ti",
       "tasksUndo": "Deshacer tus acciones sobre tareas de Casa",
-      "tasksCreate": "Crear tareas de Casa asignadas a cualquiera"
+      "tasksCreate": "Crear tareas de Casa asignadas a cualquiera",
+      "calendarRead": "Ver tus eventos del calendario de DoIt"
     }
   },
   "common": {
