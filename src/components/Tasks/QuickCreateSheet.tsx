@@ -36,6 +36,7 @@ export default function QuickCreateSheet() {
 	const [availableFromTime, setAvailableFromTime] = useState('')
 	const [availableUntilTime, setAvailableUntilTime] = useState('')
 	const [recommendedTime, setRecommendedTime] = useState('')
+	const [extendsUntilNextOccurrence, setExtendsUntilNextOccurrence] = useState(false)
 	const [timeZoneId, setTimeZoneId] = useState(getBrowserTimeZone())
 	const [zoneName, setZoneName] = useState('')
 	const [quickZoneOpen, setQuickZoneOpen] = useState(false)
@@ -65,6 +66,7 @@ export default function QuickCreateSheet() {
 			setAvailableFromTime('')
 			setAvailableUntilTime('')
 			setRecommendedTime('')
+			setExtendsUntilNextOccurrence(false)
 			setTimeZoneId(getBrowserTimeZone())
 			setDetailsOpen(true)
 			setQuickZoneOpen(false)
@@ -87,6 +89,7 @@ export default function QuickCreateSheet() {
 		setAvailableFromTime(toInputTime(editingTask.schedule?.availableFromTime, editingTask.schedule?.timeZoneId))
 		setAvailableUntilTime(toInputTime(editingTask.schedule?.availableUntilTime, editingTask.schedule?.timeZoneId))
 		setRecommendedTime(toInputTime(editingTask.schedule?.recommendedTime, editingTask.schedule?.timeZoneId))
+		setExtendsUntilNextOccurrence(editingTask.schedule?.extendsUntilNextOccurrence ?? false)
 		setTimeZoneId(editingTask.schedule?.timeZoneId ?? getBrowserTimeZone())
 		setDetailsOpen(true)
 	}, [editingTask, quickCreateZoneId])
@@ -124,8 +127,9 @@ export default function QuickCreateSheet() {
 					interval: interval ? Number(interval) : null,
 					availableFromTime: availableFromTime || null,
 					availableUntilTime: availableUntilTime || null,
-				recommendedTime: recommendedTime || null,
-				timeZoneId,
+					recommendedTime: recommendedTime || null,
+					extendsUntilNextOccurrence: recurrence !== 'Manual' && extendsUntilNextOccurrence,
+					timeZoneId,
 				},
 				assignmentMode: scope === 'House' ? assignmentMode : 'SingleUser',
 				assigneeIds: scope === 'House' && assignmentMode !== 'Anyone' && assigneeId ? [assigneeId] : [],
@@ -249,6 +253,10 @@ export default function QuickCreateSheet() {
 								<span>{t('quickCreate.recommendedTime')}</span>
 								<input value={recommendedTime} onChange={(event) => setRecommendedTime(event.target.value)} type='time' />
 							</label>
+							{recurrence !== 'Manual' ? <label className='composer-toggle composer-field--full'>
+								<input type='checkbox' checked={extendsUntilNextOccurrence} onChange={(event) => setExtendsUntilNextOccurrence(event.target.checked)} />
+								<span>{t('quickCreate.extendsUntilNextOccurrence')}</span>
+							</label> : null}
 							</>
 						</div>
 					) : null}

@@ -13,6 +13,7 @@ export type TaskSchedule = {
 	recommendedTime?: string | null
 	timeZoneId: string
 	unavailableVisibilityMode: string
+	extendsUntilNextOccurrence?: boolean
 	createdAt: string
 	updatedAt: string
 }
@@ -66,6 +67,7 @@ export type TaskScheduleRequest = {
 	recommendedTime?: string | null
 	timeZoneId?: string | null
 	unavailableVisibilityMode?: string | null
+	extendsUntilNextOccurrence?: boolean | null
 }
 
 export type CreateTaskRequest = {

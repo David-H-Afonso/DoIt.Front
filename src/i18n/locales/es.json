@@ -240,6 +240,7 @@
     "availableFrom": "Disponible desde",
     "availableUntil": "Disponible hasta",
     "recommendedTime": "Hora recomendada",
+    "extendsUntilNextOccurrence": "Se mantiene pendiente hasta la siguiente repetición",
     "createZone": "Nueva zona rápida",
     "zoneName": "Nombre de zona",
     "assignmentMode": "Asignación",

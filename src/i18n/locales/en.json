@@ -240,6 +240,7 @@
     "availableFrom": "Available from",
     "availableUntil": "Available until",
     "recommendedTime": "Recommended time",
+    "extendsUntilNextOccurrence": "Keep pending until the next occurrence",
     "createZone": "New quick zone",
     "zoneName": "Zone name",
     "assignmentMode": "Assignment",
