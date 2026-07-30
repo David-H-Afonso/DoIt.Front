@@ -1,4 +1,13 @@
-import type { DeletePushSubscriptionRequest, PushSubscriptionRequest, PushSubscriptionStatus, WebPushConfig } from '@/models/notifications'
+import type {
+	DeletePushSubscriptionRequest,
+	NotificationPreferences,
+	PushSubscriptionRequest,
+	PushSubscriptionStatus,
+	TaskNotificationOverride,
+	UpdateNotificationPreferencesRequest,
+	UpdateTaskNotificationOverrideRequest,
+	WebPushConfig,
+} from '@/models/notifications'
 import { environment } from '@/environments'
 import { apiRequest } from './httpClient'
 
@@ -30,6 +39,32 @@ export function registerServiceWorker() {
 export const NotificationService = {
 	getConfig: (accessToken: string) =>
 		apiRequest<WebPushConfig>(environment.apiRoutes.notifications.config, { accessToken }),
+
+	getPreferences: (accessToken: string) =>
+		apiRequest<NotificationPreferences>(environment.apiRoutes.notifications.preferences, { accessToken }),
+
+	updatePreferences: (accessToken: string, request: UpdateNotificationPreferencesRequest) =>
+		apiRequest<NotificationPreferences>(environment.apiRoutes.notifications.preferences, {
+			method: 'PUT',
+			body: request,
+			accessToken,
+		}),
+
+	getTaskOverride: (accessToken: string, taskId: string) =>
+		apiRequest<TaskNotificationOverride>(environment.apiRoutes.notifications.task(taskId), { accessToken }),
+
+	updateTaskOverride: (accessToken: string, taskId: string, request: UpdateTaskNotificationOverrideRequest) =>
+		apiRequest<TaskNotificationOverride>(environment.apiRoutes.notifications.task(taskId), {
+			method: 'PUT',
+			body: request,
+			accessToken,
+		}),
+
+	deleteTaskOverride: (accessToken: string, taskId: string) =>
+		apiRequest<void>(environment.apiRoutes.notifications.task(taskId), {
+			method: 'DELETE',
+			accessToken,
+		}),
 
 	async getStatus(accessToken: string): Promise<NotificationStatus> {
 		if (!isPushSupported()) return 'unsupported'

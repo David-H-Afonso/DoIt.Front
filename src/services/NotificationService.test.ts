@@ -94,4 +94,50 @@ describe('NotificationService', () => {
 		}))
 		expect(subscription.unsubscribe).toHaveBeenCalledOnce()
 	})
+
+	it('loads and saves the signed-in user notification preferences', async () => {
+		const preferences = {
+			availableFromEnabled: true,
+			recommendedEnabled: false,
+			beforeAvailableUntilEnabled: true,
+			taskCompletedEnabled: false,
+			beforeAvailableUntilMinutes: 45,
+		}
+		apiRequestMock.mockResolvedValueOnce(preferences).mockResolvedValueOnce(preferences)
+
+		expect(await NotificationService.getPreferences('access-token')).toEqual(preferences)
+		expect(await NotificationService.updatePreferences('access-token', preferences)).toEqual(preferences)
+		expect(apiRequestMock).toHaveBeenNthCalledWith(1, '/api/notifications/preferences', { accessToken: 'access-token' })
+		expect(apiRequestMock).toHaveBeenNthCalledWith(2, '/api/notifications/preferences', {
+		method: 'PUT',
+		body: preferences,
+		accessToken: 'access-token',
+	})
+	})
+
+	it('reads, updates, and deletes a task notification override', async () => {
+		const override = {
+			taskId: 'task-id',
+			availableFromEnabled: null,
+			recommendedEnabled: false,
+			beforeAvailableUntilEnabled: true,
+			taskCompletedEnabled: null,
+			beforeAvailableUntilMinutes: 15,
+		}
+		apiRequestMock.mockResolvedValueOnce(override).mockResolvedValueOnce(override).mockResolvedValueOnce(undefined)
+
+		expect(await NotificationService.getTaskOverride('access-token', 'task-id')).toEqual(override)
+		expect(await NotificationService.updateTaskOverride('access-token', 'task-id', override)).toEqual(override)
+		await NotificationService.deleteTaskOverride('access-token', 'task-id')
+		expect(apiRequestMock).toHaveBeenNthCalledWith(1, '/api/notifications/tasks/task-id', { accessToken: 'access-token' })
+		expect(apiRequestMock).toHaveBeenNthCalledWith(2, '/api/notifications/tasks/task-id', {
+		method: 'PUT',
+		body: override,
+		accessToken: 'access-token',
+	})
+		expect(apiRequestMock).toHaveBeenNthCalledWith(3, '/api/notifications/tasks/task-id', {
+		method: 'DELETE',
+		accessToken: 'access-token',
+	})
+	})
 })

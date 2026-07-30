@@ -24,3 +24,24 @@ export type DeletePushSubscriptionRequest = {
 	endpoint?: string
 	id?: string
 }
+
+export type NotificationPreferences = {
+	availableFromEnabled: boolean
+	recommendedEnabled: boolean
+	beforeAvailableUntilEnabled: boolean
+	taskCompletedEnabled: boolean
+	beforeAvailableUntilMinutes: number
+}
+
+export type UpdateNotificationPreferencesRequest = NotificationPreferences
+
+export type TaskNotificationOverride = {
+	taskId: string
+	availableFromEnabled: boolean | null
+	recommendedEnabled: boolean | null
+	beforeAvailableUntilEnabled: boolean | null
+	taskCompletedEnabled: boolean | null
+	beforeAvailableUntilMinutes: number | null
+}
+
+export type UpdateTaskNotificationOverrideRequest = Omit<TaskNotificationOverride, 'taskId'>

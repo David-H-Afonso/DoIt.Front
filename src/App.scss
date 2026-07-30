@@ -1411,6 +1411,84 @@ progress {
 	font-weight: 800;
 }
 
+.profile-notification-preferences {
+	display: grid;
+	gap: 14px;
+	border: 1px solid var(--hairline);
+	border-radius: 22px;
+	background: color-mix(in srgb, var(--color-surface-strong) 82%, transparent);
+	padding: 16px;
+}
+
+.profile-notification-preferences__description {
+	max-width: 42rem;
+	margin: 0;
+	color: var(--color-text-muted);
+	font-size: 0.84rem;
+}
+
+.profile-notification-preferences__form {
+	display: grid;
+	gap: 8px;
+}
+
+.profile-notification-setting {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 18px;
+	border: 1px solid var(--hairline);
+	border-radius: 15px;
+	background: color-mix(in srgb, var(--color-surface-strong) 72%, transparent);
+	padding: 12px 14px;
+}
+
+.profile-notification-setting span {
+	display: grid;
+	gap: 3px;
+}
+
+.profile-notification-setting strong {
+	font-size: 0.87rem;
+}
+
+.profile-notification-setting small,
+.profile-notification-offset small {
+	color: var(--color-text-muted);
+	font-size: 0.76rem;
+	line-height: 1.35;
+}
+
+.profile-notification-setting input[type='checkbox'] {
+	width: 20px;
+	min-width: 20px;
+	height: 20px;
+	min-height: 20px;
+	accent-color: var(--color-primary);
+}
+
+.profile-notification-preferences__footer {
+	display: flex;
+	align-items: end;
+	justify-content: space-between;
+	gap: 14px;
+	margin-top: 6px;
+}
+
+.profile-notification-offset {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+	color: var(--color-text-muted);
+	font-size: 0.8rem;
+	font-weight: 700;
+}
+
+.profile-notification-offset input {
+	width: 86px;
+}
+
 .profile-pending-card__badge {
 	border: 1px solid var(--hairline);
 	border-radius: 999px;
@@ -2338,6 +2416,37 @@ svg {
 	line-height: 1.45;
 }
 
+.composer-notification-settings {
+	display: grid;
+	gap: 10px;
+	border: 1px solid color-mix(in srgb, var(--color-primary) 20%, var(--hairline));
+	border-radius: 17px;
+	background: color-mix(in srgb, var(--color-primary) 5%, #fffefa);
+	padding: 13px;
+}
+
+.composer-notification-settings > div:first-child {
+	display: grid;
+	gap: 4px;
+}
+
+.composer-notification-settings > div:first-child strong {
+	font-size: 0.86rem;
+}
+
+.composer-notification-settings p {
+	margin: 0;
+	color: var(--color-text-muted);
+	font-size: 0.78rem;
+	line-height: 1.4;
+}
+
+.composer-notification-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px 10px;
+}
+
 .composer-recurrence-select select {
 	min-height: 48px;
 	border-color: color-mix(in srgb, var(--color-accent) 45%, var(--hairline));
@@ -2942,5 +3051,18 @@ svg {
 
 	.profile-notifications-card button {
 		width: 100%;
+	}
+
+	.profile-notification-preferences__footer {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.profile-notification-preferences__footer button {
+		width: 100%;
+	}
+
+	.composer-notification-grid {
+		grid-template-columns: 1fr;
 	}
 }

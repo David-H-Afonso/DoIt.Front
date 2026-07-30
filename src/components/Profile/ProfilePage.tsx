@@ -11,6 +11,7 @@ import type { CreateTaskRequest } from '@/models/task'
 import { AuthService, BackupService, NotificationService } from '@/services'
 import { NotificationServiceError, type NotificationStatus } from '@/services/NotificationService'
 import type { BackupSchedule } from '@/models/backup'
+import type { NotificationPreferences } from '@/models/notifications'
 import { ApiError } from '@/services/httpClient'
 
 type CsvTaskRow = {
@@ -68,6 +69,9 @@ export default function ProfilePage() {
 	const [backupStatus, setBackupStatus] = useState('')
 	const [notificationStatus, setNotificationStatus] = useState<ProfileNotificationStatus>('loading')
 	const [notificationBusy, setNotificationBusy] = useState(false)
+	const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences | null>(null)
+	const [notificationPreferencesBusy, setNotificationPreferencesBusy] = useState(false)
+	const [notificationPreferencesError, setNotificationPreferencesError] = useState('')
 	const levelStart = xp?.currentLevelXp ?? 0
 	const levelEnd = xp?.nextLevelXp ?? 100
 	const progress = levelEnd > levelStart ? Math.min(100, Math.round(((xp?.progressToNextLevel ?? 0) / (levelEnd - levelStart)) * 100)) : 0
@@ -94,10 +98,14 @@ export default function ProfilePage() {
 		let mounted = true
 		if (!accessToken) {
 			setNotificationStatus('loading')
+			setNotificationPreferences(null)
+			setNotificationPreferencesError('')
 			return () => { mounted = false }
 		}
 
 		setNotificationStatus('loading')
+		setNotificationPreferences(null)
+		setNotificationPreferencesError('')
 		void NotificationService.getStatus(accessToken)
 			.then((status) => {
 				if (mounted) setNotificationStatus(status)
@@ -105,9 +113,16 @@ export default function ProfilePage() {
 			.catch(() => {
 				if (mounted) setNotificationStatus('error')
 			})
+		void NotificationService.getPreferences(accessToken)
+			.then((preferences) => {
+				if (mounted) setNotificationPreferences(preferences)
+			})
+			.catch(() => {
+				if (mounted) setNotificationPreferencesError(translate(locale, 'notifications.preferencesError'))
+			})
 
 		return () => { mounted = false }
-	}, [accessToken])
+	}, [accessToken, locale])
 
 	const toggleNotifications = async () => {
 		if (!accessToken) return
@@ -132,6 +147,22 @@ export default function ProfilePage() {
 			}
 		} finally {
 			setNotificationBusy(false)
+		}
+	}
+
+	const saveNotificationPreferences = async (event: FormEvent) => {
+		event.preventDefault()
+		if (!accessToken || !notificationPreferences) return
+		setNotificationPreferencesBusy(true)
+		setNotificationPreferencesError('')
+		try {
+			const saved = await NotificationService.updatePreferences(accessToken, notificationPreferences)
+			setNotificationPreferences(saved)
+			showToast({ type: 'success', title: t('notifications.preferencesSaved') })
+		} catch {
+			setNotificationPreferencesError(t('notifications.preferencesError'))
+		} finally {
+			setNotificationPreferencesBusy(false)
 		}
 	}
 
@@ -346,6 +377,43 @@ export default function ProfilePage() {
 					{notificationStatus === 'enabled' ? t('notifications.disable') : t('notifications.enable')}
 				</button>
 			</section>
+
+			{accessToken ? <section className='profile-notification-preferences' aria-labelledby='profile-notification-preferences-title'>
+				<div className='profile-card__header'>
+					<div>
+						<span className='eyebrow'>{t('profile.tools')}</span>
+						<h2 id='profile-notification-preferences-title'>{t('notifications.preferencesTitle')}</h2>
+					</div>
+				</div>
+				<p className='profile-notification-preferences__description'>{t('notifications.preferencesDescription')}</p>
+				{notificationPreferences ? <form className='profile-notification-preferences__form' onSubmit={saveNotificationPreferences}>
+					<label className='profile-notification-setting'>
+						<span><strong>{t('notifications.availableFrom')}</strong><small>{t('notifications.availableFromDescription')}</small></span>
+						<input type='checkbox' checked={notificationPreferences.availableFromEnabled} onChange={(event) => setNotificationPreferences({ ...notificationPreferences, availableFromEnabled: event.target.checked })} />
+					</label>
+					<label className='profile-notification-setting'>
+						<span><strong>{t('notifications.recommended')}</strong><small>{t('notifications.recommendedDescription')}</small></span>
+						<input type='checkbox' checked={notificationPreferences.recommendedEnabled} onChange={(event) => setNotificationPreferences({ ...notificationPreferences, recommendedEnabled: event.target.checked })} />
+					</label>
+					<label className='profile-notification-setting'>
+						<span><strong>{t('notifications.beforeAvailableUntil')}</strong><small>{t('notifications.beforeAvailableUntilDescription')}</small></span>
+						<input type='checkbox' checked={notificationPreferences.beforeAvailableUntilEnabled} onChange={(event) => setNotificationPreferences({ ...notificationPreferences, beforeAvailableUntilEnabled: event.target.checked })} />
+					</label>
+					<label className='profile-notification-setting'>
+						<span><strong>{t('notifications.taskCompleted')}</strong><small>{t('notifications.taskCompletedDescription')}</small></span>
+						<input type='checkbox' checked={notificationPreferences.taskCompletedEnabled} onChange={(event) => setNotificationPreferences({ ...notificationPreferences, taskCompletedEnabled: event.target.checked })} />
+					</label>
+					<div className='profile-notification-preferences__footer'>
+						<label className='profile-notification-offset'>
+							<span>{t('notifications.beforeAvailableUntilMinutes')}</span>
+							<input type='number' min='0' max='1440' value={notificationPreferences.beforeAvailableUntilMinutes} onChange={(event) => setNotificationPreferences({ ...notificationPreferences, beforeAvailableUntilMinutes: Number(event.target.value) })} />
+							<small>{t('notifications.minutes')}</small>
+						</label>
+						<button className='primary-action' type='submit' disabled={notificationPreferencesBusy}>{t('notifications.savePreferences')}</button>
+					</div>
+					{notificationPreferencesError ? <p className='form-error'>{notificationPreferencesError}</p> : null}
+				</form> : notificationPreferencesError ? <p className='form-error'>{notificationPreferencesError}</p> : <p className='empty-state'>{t('common.loading')}</p>}
+			</section> : null}
 
 			{user?.role === 'Admin' ? <section className='profile-admin-card' aria-labelledby='profile-backups-title'>
 				<div className='profile-card__header'>
