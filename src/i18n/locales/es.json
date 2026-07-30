@@ -157,6 +157,22 @@
       "failed": "Fallido"
     }
   },
+  "notifications": {
+    "title": "Notificaciones en el teléfono",
+    "description": "Recibe recordatorios de calendario aunque DoIt esté cerrado.",
+    "enable": "Activar notificaciones",
+    "disable": "Desactivar notificaciones",
+    "enabled": "Activadas en este dispositivo",
+    "ready": "Listas para activar",
+    "loading": "Comprobando notificaciones...",
+    "unsupported": "Este navegador no admite notificaciones push.",
+    "serverDisabled": "Las notificaciones no están configuradas en el servidor.",
+    "permissionDenied": "El navegador ha bloqueado las notificaciones. Actívalas en los permisos del sitio.",
+    "statusError": "No se pudo comprobar el estado.",
+    "enabledToast": "Notificaciones activadas",
+    "disabledToast": "Notificaciones desactivadas",
+    "actionError": "No se pudieron actualizar las notificaciones."
+  },
   "calendar": {
     "kicker": "Agenda personal",
     "title": "Calendario",

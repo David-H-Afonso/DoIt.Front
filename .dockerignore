@@ -1,9 +1,8 @@
 node_modules
 dist
+.vite
+coverage
+cypress/screenshots
+cypress/videos
 .git
-.gitignore
-Dockerfile
-Dockerfile.*
-*.md
-bin
-obj
+*.env

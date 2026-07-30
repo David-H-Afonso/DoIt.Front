@@ -8,7 +8,8 @@ import { createUser, fetchUsers, resetUserPassword, updateUser } from '@/store/f
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { useToast } from '@/components/Toasts/useToast'
 import type { CreateTaskRequest } from '@/models/task'
-import { BackupService } from '@/services'
+import { AuthService, BackupService, NotificationService } from '@/services'
+import { NotificationServiceError, type NotificationStatus } from '@/services/NotificationService'
 import type { BackupSchedule } from '@/models/backup'
 import { ApiError } from '@/services/httpClient'
 
@@ -31,12 +32,15 @@ type CsvTaskRow = {
 	assigneeUsername: string
 }
 
+type ProfileNotificationStatus = NotificationStatus | 'loading' | 'error'
+
 export default function ProfilePage() {
 	const { locale, t } = useI18n()
 	const dispatch = useAppDispatch()
 	const { showToast } = useToast()
 	const user = useAppSelector((state) => state.auth.user)
 	const accessToken = useAppSelector((state) => state.auth.accessToken)
+	const refreshToken = useAppSelector((state) => state.auth.refreshToken)
 	const users = useAppSelector((state) => state.users.items)
 	const usersLoading = useAppSelector((state) => state.users.loading)
 	const usersError = useAppSelector((state) => state.users.error)
@@ -62,6 +66,8 @@ export default function ProfilePage() {
 	const [backupRetention, setBackupRetention] = useState('7')
 	const [backupBusy, setBackupBusy] = useState(false)
 	const [backupStatus, setBackupStatus] = useState('')
+	const [notificationStatus, setNotificationStatus] = useState<ProfileNotificationStatus>('loading')
+	const [notificationBusy, setNotificationBusy] = useState(false)
 	const levelStart = xp?.currentLevelXp ?? 0
 	const levelEnd = xp?.nextLevelXp ?? 100
 	const progress = levelEnd > levelStart ? Math.min(100, Math.round(((xp?.progressToNextLevel ?? 0) / (levelEnd - levelStart)) * 100)) : 0
@@ -83,6 +89,69 @@ export default function ProfilePage() {
 			})
 		}
 	}, [accessToken, dispatch, locale, user?.id, user?.role])
+
+	useEffect(() => {
+		let mounted = true
+		if (!accessToken) {
+			setNotificationStatus('loading')
+			return () => { mounted = false }
+		}
+
+		setNotificationStatus('loading')
+		void NotificationService.getStatus(accessToken)
+			.then((status) => {
+				if (mounted) setNotificationStatus(status)
+			})
+			.catch(() => {
+				if (mounted) setNotificationStatus('error')
+			})
+
+		return () => { mounted = false }
+	}, [accessToken])
+
+	const toggleNotifications = async () => {
+		if (!accessToken) return
+		setNotificationBusy(true)
+		try {
+			if (notificationStatus === 'enabled') {
+				await NotificationService.disable(accessToken)
+				setNotificationStatus('ready')
+				showToast({ type: 'success', title: t('notifications.disabledToast') })
+			} else {
+				await NotificationService.enable(accessToken)
+				setNotificationStatus('enabled')
+				showToast({ type: 'success', title: t('notifications.enabledToast') })
+			}
+		} catch (error) {
+			if (error instanceof NotificationServiceError && error.code === 'permission_denied') {
+				setNotificationStatus('denied')
+				showToast({ type: 'warning', title: t('notifications.permissionDenied') })
+			} else {
+				setNotificationStatus('error')
+				showToast({ type: 'error', title: t('notifications.actionError') })
+			}
+		} finally {
+			setNotificationBusy(false)
+		}
+	}
+
+	const logout = async () => {
+		if (accessToken) {
+			try {
+				await NotificationService.disable(accessToken)
+			} catch {
+				// The local logout must still complete if the subscription endpoint is unavailable.
+			}
+		}
+		if (refreshToken) {
+			try {
+				await AuthService.logout(refreshToken)
+			} catch {
+				// The local logout must still complete if the server is unavailable.
+			}
+		}
+		dispatch(logoutLocal())
+	}
 
 	const saveBackup = async (event: FormEvent) => {
 		event.preventDefault()
@@ -218,6 +287,17 @@ export default function ProfilePage() {
 		if (errors.length > 0) setImportError(errors.join('\n'))
 	}
 
+	const notificationStatusLabel: Record<ProfileNotificationStatus, string> = {
+		loading: t('notifications.loading'),
+		unsupported: t('notifications.unsupported'),
+		disabled: t('notifications.serverDisabled'),
+		denied: t('notifications.permissionDenied'),
+		ready: t('notifications.ready'),
+		enabled: t('notifications.enabled'),
+		error: t('notifications.statusError'),
+	}
+	const notificationCanToggle = notificationStatus === 'ready' || notificationStatus === 'enabled' || notificationStatus === 'error'
+
 	return (
 		<div className='page-grid page-grid--profile'>
 			<section className='profile-hero'>
@@ -248,6 +328,23 @@ export default function ProfilePage() {
 					<p>{t('theme.pendingDescription')}</p>
 				</div>
 				<span className='profile-pending-card__badge'>{t('theme.pending')}</span>
+			</section>
+
+			<section className='profile-notifications-card' aria-labelledby='profile-notifications-title'>
+				<div className='profile-notifications-card__content'>
+					<span className='eyebrow'>{t('profile.tools')}</span>
+					<h2 id='profile-notifications-title'>{t('notifications.title')}</h2>
+					<p>{t('notifications.description')}</p>
+					<span className='profile-notifications-card__status' aria-live='polite'>{notificationStatusLabel[notificationStatus]}</span>
+				</div>
+				<button
+					className={notificationStatus === 'enabled' ? 'secondary-action' : 'primary-action'}
+					type='button'
+					disabled={notificationBusy || !notificationCanToggle}
+					onClick={() => void toggleNotifications()}
+				>
+					{notificationStatus === 'enabled' ? t('notifications.disable') : t('notifications.enable')}
+				</button>
 			</section>
 
 			{user?.role === 'Admin' ? <section className='profile-admin-card' aria-labelledby='profile-backups-title'>
@@ -324,7 +421,7 @@ export default function ProfilePage() {
 				</div> : null}
 			</section>
 
-			<button className='secondary-action profile-logout' type='button' onClick={() => dispatch(logoutLocal())}>{t('profile.logout')}</button>
+			<button className='secondary-action profile-logout' type='button' onClick={() => void logout()}>{t('profile.logout')}</button>
 		</div>
 	)
 }

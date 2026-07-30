@@ -3,8 +3,8 @@ WORKDIR /app
 
 RUN apk add --no-cache python3 make g++
 
-COPY package.json ./
-RUN npm install --include=optional --no-audit --no-fund
+COPY package.json package-lock.json ./
+RUN npm ci --include=optional --no-audit --no-fund
 
 COPY . ./
 RUN npm run build

@@ -5,7 +5,10 @@ import { PersistGate } from 'redux-persist/integration/react'
 import { RouterProvider } from 'react-router-dom'
 import { store, persistor } from './store'
 import { router } from '@/navigation/router'
+import { registerServiceWorker } from '@/services'
 import './App.scss'
+
+registerServiceWorker()
 
 createRoot(document.getElementById('root')!).render(
 	<StrictMode>

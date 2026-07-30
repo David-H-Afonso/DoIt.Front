@@ -1377,6 +1377,40 @@ progress {
 	font-size: 0.86rem;
 }
 
+.profile-notifications-card {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 16px;
+	border: 1px solid color-mix(in srgb, var(--color-primary) 24%, var(--hairline));
+	border-radius: 18px;
+	background: color-mix(in srgb, var(--color-primary) 7%, var(--surface-raised));
+	padding: 18px;
+}
+
+.profile-notifications-card__content {
+	display: grid;
+	gap: 4px;
+}
+
+.profile-notifications-card h2 {
+	margin: 0;
+	font-size: 1rem;
+}
+
+.profile-notifications-card p {
+	max-width: 38rem;
+	margin: 0;
+	color: var(--color-text-muted);
+	font-size: 0.86rem;
+}
+
+.profile-notifications-card__status {
+	color: var(--color-primary);
+	font-size: 0.78rem;
+	font-weight: 800;
+}
+
 .profile-pending-card__badge {
 	border: 1px solid var(--hairline);
 	border-radius: 999px;
@@ -2898,5 +2932,15 @@ svg {
 		padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
 		background: color-mix(in srgb, var(--color-surface) 94%, transparent);
 		backdrop-filter: blur(12px);
+	}
+}
+
+@media (max-width: 620px) {
+	.profile-notifications-card {
+		grid-template-columns: 1fr;
+	}
+
+	.profile-notifications-card button {
+		width: 100%;
 	}
 }

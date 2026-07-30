@@ -1,13 +1,16 @@
 {
-  "name": "DoIt",
+  "name": "DoIt - tareas y recordatorios",
   "short_name": "DoIt",
-  "start_url": "/",
+  "id": "/",
+  "start_url": "/now",
+  "scope": "/",
   "display": "standalone",
+  "description": "Tareas, rutinas, calendario y recordatorios para casa.",
   "background_color": "#f7f4ef",
   "theme_color": "#111827",
   "icons": [
     {
-      "src": "./vite.svg",
+      "src": "/doit-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

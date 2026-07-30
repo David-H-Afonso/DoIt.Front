@@ -55,6 +55,10 @@ export const apiRoutes = {
 		me: '/api/xp/me',
 	},
 	statistics: '/api/statistics',
+	notifications: {
+		config: '/api/notifications/config',
+		subscription: '/api/notifications/subscription',
+	},
 	calendar: {
 		events: '/api/calendar/events',
 		event: (id: string) => `/api/calendar/events/${id}`,

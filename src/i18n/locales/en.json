@@ -157,6 +157,22 @@
       "failed": "Failed"
     }
   },
+  "notifications": {
+    "title": "Phone notifications",
+    "description": "Receive calendar reminders even when DoIt is closed.",
+    "enable": "Enable notifications",
+    "disable": "Disable notifications",
+    "enabled": "Enabled on this device",
+    "ready": "Ready to enable",
+    "loading": "Checking notifications...",
+    "unsupported": "This browser does not support push notifications.",
+    "serverDisabled": "Notifications are not configured on the server.",
+    "permissionDenied": "The browser blocked notifications. Enable them in the site permissions.",
+    "statusError": "Could not check the status.",
+    "enabledToast": "Notifications enabled",
+    "disabledToast": "Notifications disabled",
+    "actionError": "Could not update notifications."
+  },
   "calendar": {
     "kicker": "Personal agenda",
     "title": "Calendar",
