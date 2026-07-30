@@ -29,6 +29,7 @@ export type NotificationPreferences = {
 	availableFromEnabled: boolean
 	recommendedEnabled: boolean
 	beforeAvailableUntilEnabled: boolean
+	taskExpiredEnabled: boolean
 	taskCompletedEnabled: boolean
 	beforeAvailableUntilMinutes: number
 }
@@ -40,6 +41,7 @@ export type TaskNotificationOverride = {
 	availableFromEnabled: boolean | null
 	recommendedEnabled: boolean | null
 	beforeAvailableUntilEnabled: boolean | null
+	taskExpiredEnabled: boolean | null
 	taskCompletedEnabled: boolean | null
 	beforeAvailableUntilMinutes: number | null
 }

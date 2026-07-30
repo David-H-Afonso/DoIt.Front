@@ -10,7 +10,7 @@ import { useToast } from '@/components/Toasts/useToast'
 import type { TaskNotificationOverride } from '@/models/notifications'
 import { NotificationService } from '@/services'
 
-type TaskNotificationBooleanKey = 'availableFromEnabled' | 'recommendedEnabled' | 'beforeAvailableUntilEnabled' | 'taskCompletedEnabled'
+type TaskNotificationBooleanKey = 'availableFromEnabled' | 'recommendedEnabled' | 'beforeAvailableUntilEnabled' | 'taskExpiredEnabled' | 'taskCompletedEnabled'
 
 export default function QuickCreateSheet() {
 	const { locale, t } = useI18n()
@@ -183,6 +183,7 @@ export default function QuickCreateSheet() {
 					const hasOverride = taskNotificationOverride.availableFromEnabled !== null
 						|| taskNotificationOverride.recommendedEnabled !== null
 						|| taskNotificationOverride.beforeAvailableUntilEnabled !== null
+						|| taskNotificationOverride.taskExpiredEnabled !== null
 						|| taskNotificationOverride.taskCompletedEnabled !== null
 						|| taskNotificationOverride.beforeAvailableUntilMinutes !== null
 					if (hasOverride) {
@@ -190,6 +191,7 @@ export default function QuickCreateSheet() {
 							availableFromEnabled: taskNotificationOverride.availableFromEnabled,
 							recommendedEnabled: taskNotificationOverride.recommendedEnabled,
 							beforeAvailableUntilEnabled: taskNotificationOverride.beforeAvailableUntilEnabled,
+							taskExpiredEnabled: taskNotificationOverride.taskExpiredEnabled,
 							taskCompletedEnabled: taskNotificationOverride.taskCompletedEnabled,
 							beforeAvailableUntilMinutes: taskNotificationOverride.beforeAvailableUntilMinutes,
 						})
@@ -346,6 +348,14 @@ export default function QuickCreateSheet() {
 							<label className='composer-field'>
 								{t('notifications.beforeAvailableUntil')}
 								<select value={toOverrideSelection(taskNotificationOverride.beforeAvailableUntilEnabled)} onChange={(event) => updateTaskNotificationValue('beforeAvailableUntilEnabled', fromOverrideSelection(event.target.value))}>
+									<option value='inherit'>{t('notifications.inherit')}</option>
+									<option value='on'>{t('notifications.overrideOn')}</option>
+									<option value='off'>{t('notifications.overrideOff')}</option>
+								</select>
+							</label>
+							<label className='composer-field'>
+								{t('notifications.taskExpired')}
+								<select value={toOverrideSelection(taskNotificationOverride.taskExpiredEnabled)} onChange={(event) => updateTaskNotificationValue('taskExpiredEnabled', fromOverrideSelection(event.target.value))}>
 									<option value='inherit'>{t('notifications.inherit')}</option>
 									<option value='on'>{t('notifications.overrideOn')}</option>
 									<option value='off'>{t('notifications.overrideOff')}</option>

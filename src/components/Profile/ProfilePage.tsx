@@ -400,6 +400,10 @@ export default function ProfilePage() {
 						<input type='checkbox' checked={notificationPreferences.beforeAvailableUntilEnabled} onChange={(event) => setNotificationPreferences({ ...notificationPreferences, beforeAvailableUntilEnabled: event.target.checked })} />
 					</label>
 					<label className='profile-notification-setting'>
+						<span><strong>{t('notifications.taskExpired')}</strong><small>{t('notifications.taskExpiredDescription')}</small></span>
+						<input type='checkbox' checked={notificationPreferences.taskExpiredEnabled} onChange={(event) => setNotificationPreferences({ ...notificationPreferences, taskExpiredEnabled: event.target.checked })} />
+					</label>
+					<label className='profile-notification-setting'>
 						<span><strong>{t('notifications.taskCompleted')}</strong><small>{t('notifications.taskCompletedDescription')}</small></span>
 						<input type='checkbox' checked={notificationPreferences.taskCompletedEnabled} onChange={(event) => setNotificationPreferences({ ...notificationPreferences, taskCompletedEnabled: event.target.checked })} />
 					</label>

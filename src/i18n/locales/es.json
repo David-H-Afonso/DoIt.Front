@@ -180,6 +180,8 @@
     "recommendedDescription": "Avisar cuando llegue la hora recomendada.",
     "beforeAvailableUntil": "Antes de que termine",
     "beforeAvailableUntilDescription": "Avisar antes de que cierre la ventana disponible.",
+    "taskExpired": "Tarea vencida",
+    "taskExpiredDescription": "Avisar cuando termine la ventana disponible.",
     "taskCompleted": "Tarea completada",
     "taskCompletedDescription": "Avisar cuando se complete una tarea.",
     "beforeAvailableUntilMinutes": "Antelación para el aviso final",

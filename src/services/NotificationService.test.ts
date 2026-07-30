@@ -100,6 +100,7 @@ describe('NotificationService', () => {
 			availableFromEnabled: true,
 			recommendedEnabled: false,
 			beforeAvailableUntilEnabled: true,
+			taskExpiredEnabled: true,
 			taskCompletedEnabled: false,
 			beforeAvailableUntilMinutes: 45,
 		}
@@ -121,6 +122,7 @@ describe('NotificationService', () => {
 			availableFromEnabled: null,
 			recommendedEnabled: false,
 			beforeAvailableUntilEnabled: true,
+			taskExpiredEnabled: null,
 			taskCompletedEnabled: null,
 			beforeAvailableUntilMinutes: 15,
 		}

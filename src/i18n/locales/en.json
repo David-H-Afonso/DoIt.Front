@@ -180,6 +180,8 @@
     "recommendedDescription": "Notify when the recommended time arrives.",
     "beforeAvailableUntil": "Before the window closes",
     "beforeAvailableUntilDescription": "Notify before the available window ends.",
+    "taskExpired": "Task expired",
+    "taskExpiredDescription": "Notify when the available window ends.",
     "taskCompleted": "Task completed",
     "taskCompletedDescription": "Notify when a task is completed.",
     "beforeAvailableUntilMinutes": "Final reminder lead time",
