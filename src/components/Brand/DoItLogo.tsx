@@ -8,7 +8,7 @@ export default function DoItLogo({ className, compact = false }: DoItLogoProps) 
 
 	return (
 		<span className={classes} role='img' aria-label='DoIt'>
-			<img className='doit-logo__mark' src='./vite.svg' alt='' />
+			<img className='doit-logo__mark' src='/doit-logo-v2.svg' alt='' />
 			{compact ? null : <span className='doit-logo__wordmark'><span>Do</span><strong>It</strong></span>}
 		</span>
 	)

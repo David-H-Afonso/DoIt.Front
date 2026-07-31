@@ -19,8 +19,8 @@ self.addEventListener('push', (event) => {
 	const title = payload.title || 'DoIt'
 	const options = {
 		body: payload.body || 'Tienes una notificacion pendiente.',
-		icon: '/doit-icon.svg',
-		badge: '/doit-icon.svg',
+		icon: '/doit-pwa-192-v2.png',
+		badge: '/doit-pwa-192-v2.png',
 		tag: payload.tag || `doit-${Date.now()}`,
 		data: {
 			url: payload.url || '/now',
