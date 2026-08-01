@@ -317,7 +317,6 @@
   },
   "statistics": {
     "title": "Statistics",
-    "kicker": "Completion history",
     "groupBy": "Group by",
     "period": {
       "day": "Day",

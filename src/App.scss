@@ -2072,8 +2072,8 @@ progress {
 	gap: 12px;
 }
 
-.statistics-header h1 {
-	margin: 3px 0 0;
+.statistics-header {
+	justify-content: flex-end;
 }
 
 .statistics-controls,

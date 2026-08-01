@@ -30,10 +30,6 @@ export default function StatisticsPage() {
 	return (
 		<div className='page-grid statistics-page'>
 			<section className='statistics-header'>
-				<div>
-					<span className='eyebrow'>{t('statistics.kicker')}</span>
-					<h1>{t('statistics.title')}</h1>
-				</div>
 				<div className='statistics-controls'>
 					{(['day', 'week', 'month'] as Period[]).map((option) => (
 						<button key={option} type='button' className={period === option ? 'is-active' : undefined} onClick={() => setPeriod(option)}>{t(`statistics.period.${option}`)}</button>

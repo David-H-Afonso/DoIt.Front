@@ -317,7 +317,6 @@
   },
   "statistics": {
     "title": "Estadísticas",
-    "kicker": "Historial de cumplimiento",
     "groupBy": "Agrupar por",
     "period": {
       "day": "Día",
