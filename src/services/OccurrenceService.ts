@@ -18,6 +18,12 @@ export const OccurrenceService = {
 			method: 'POST',
 			accessToken,
 		}),
+	completeRetroactive: (accessToken: string, occurrenceId: string, date: string) =>
+		apiRequest<OccurrenceActionResponse>(environment.apiRoutes.occurrences.completeRetroactive(occurrenceId), {
+			method: 'POST',
+			accessToken,
+			body: { date },
+		}),
 	completeEarly: (accessToken: string, occurrenceId: string) =>
 		apiRequest<OccurrenceActionResponse>(environment.apiRoutes.occurrences.completeEarly(occurrenceId), {
 			method: 'POST',

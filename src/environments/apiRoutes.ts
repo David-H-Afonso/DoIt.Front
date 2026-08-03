@@ -14,6 +14,7 @@ export const apiRoutes = {
 	now: '/api/now',
 	occurrences: {
 		complete: (id: string) => `/api/occurrences/${id}/complete`,
+		completeRetroactive: (id: string) => `/api/occurrences/${id}/complete-retroactive`,
 		completeEarly: (id: string) => `/api/occurrences/${id}/complete-early`,
 		miss: (id: string) => `/api/occurrences/${id}/miss`,
 		notApplicable: (id: string) => `/api/occurrences/${id}/not-applicable`,

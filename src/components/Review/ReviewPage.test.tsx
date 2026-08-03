@@ -2,6 +2,7 @@ import { configureStore } from '@reduxjs/toolkit'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { Provider } from 'react-redux'
 import ReviewPage from './ReviewPage'
+import { ToastProvider } from '@/components/Toasts/ToastProvider'
 import { authReducer } from '@/store/features/auth/authSlice'
 import { reviewReducer } from '@/store/features/review/reviewSlice'
 import { themeReducer } from '@/store/features/theme/themeSlice'
@@ -32,7 +33,7 @@ describe('ReviewPage', () => {
 
 		render(
 			<Provider store={store}>
-				<ReviewPage />
+				<ToastProvider><ReviewPage /></ToastProvider>
 			</Provider>
 		)
 
@@ -52,7 +53,7 @@ describe('ReviewPage', () => {
 			},
 		})
 
-		render(<Provider store={store}><ReviewPage /></Provider>)
+		render(<Provider store={store}><ToastProvider><ReviewPage /></ToastProvider></Provider>)
 		const input = screen.getByLabelText('Seleccionar fecha') as HTMLInputElement
 		const initial = input.value
 

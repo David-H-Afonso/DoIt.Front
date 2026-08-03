@@ -312,8 +312,9 @@
     ,"previous": "Previous day"
     ,"next": "Next day"
     ,"selectDate": "Select date"
-    ,"created": "Created"
-    ,"completed": "Completed"
+     ,"created": "Created"
+     ,"completed": "Completed"
+     ,"completeOnDate": "Mark as done"
   },
   "statistics": {
     "title": "Statistics",

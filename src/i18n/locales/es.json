@@ -312,8 +312,9 @@
     ,"previous": "Día anterior"
     ,"next": "Día siguiente"
     ,"selectDate": "Seleccionar fecha"
-    ,"created": "Creada"
-    ,"completed": "Completada"
+     ,"created": "Creada"
+     ,"completed": "Completada"
+     ,"completeOnDate": "Marcar como hecha"
   },
   "statistics": {
     "title": "Estadísticas",
