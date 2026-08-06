@@ -18,6 +18,8 @@ export const apiRoutes = {
 		completeEarly: (id: string) => `/api/occurrences/${id}/complete-early`,
 		miss: (id: string) => `/api/occurrences/${id}/miss`,
 		notApplicable: (id: string) => `/api/occurrences/${id}/not-applicable`,
+		snooze: (id: string) => `/api/occurrences/${id}/snooze`,
+		cancelSnooze: (id: string) => `/api/occurrences/${id}/snooze`,
 		undo: (id: string) => `/api/occurrences/${id}/undo`,
 	},
 	review: {

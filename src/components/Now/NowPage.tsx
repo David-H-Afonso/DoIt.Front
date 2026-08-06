@@ -9,9 +9,9 @@ import { fetchTasks } from '@/store/features/tasks/tasksSlice'
 import { setXp } from '@/store/features/xp/xpSlice'
 import { openTaskEditor } from '@/store/features/ui/uiSlice'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { formatScheduleTime } from '@/utils/scheduleTime'
+import { formatInstant, formatScheduleTime } from '@/utils/scheduleTime'
 
-type PendingAction = OccurrenceAction | 'undo'
+type PendingAction = OccurrenceAction | 'undo' | 'snooze' | 'cancelSnooze'
 
 export default function NowPage() {
 	const { t, formatDate } = useI18n()
@@ -97,10 +97,12 @@ export function NowTaskCard({ task, tone }: { task: NowTask; tone: NowTask['stat
 	const currentUser = useAppSelector((state) => state.auth.user)
 	const zones = useAppSelector((state) => state.now.zones)
 	const progress = useAppSelector((state) => state.now.progress)
-	const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
+ const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
+ const [snoozeOpen, setSnoozeOpen] = useState(false)
 	const timeLabel = getTimeLabel(task, t)
 	const isCompleted = tone === 'completed'
 	const isFuture = tone === 'unavailable' || tone === 'upcoming'
+	const isSnoozed = Boolean(task.snoozedUntilUtc)
 	const canUndo = isCompleted && Boolean(currentUser && (task.completedByUserId === currentUser.id || currentUser.role === 'Admin' && task.scope === 'House'))
 
 	const applyAction = async (action: OccurrenceAction) => {
@@ -163,6 +165,33 @@ export function NowTaskCard({ task, tone }: { task: NowTask; tone: NowTask['stat
 		}
 	}
 
+	const snooze = async (duration: '1h' | '6h' | '12h' | '24h' | 'tomorrow') => {
+		if (!accessToken || pendingAction) return
+		setPendingAction('snooze')
+		try {
+			await OccurrenceService.snooze(accessToken, task.occurrenceId, duration)
+			setSnoozeOpen(false)
+			dispatch(fetchNow())
+		} catch {
+			showToast({ type: 'error', title: t('toasts.error') })
+		} finally {
+			setPendingAction(null)
+		}
+	}
+
+	const cancelSnooze = async () => {
+		if (!accessToken || pendingAction) return
+		setPendingAction('cancelSnooze')
+		try {
+			await OccurrenceService.cancelSnooze(accessToken, task.occurrenceId)
+			dispatch(fetchNow())
+		} catch {
+			showToast({ type: 'error', title: t('toasts.error') })
+		} finally {
+			setPendingAction(null)
+		}
+	}
+
 	return (
 		<article className={`task-row task-row--${tone}`}>
 			<button className={`task-check${isCompleted ? ' task-check--completed' : ''}`} type='button' disabled={isFuture || isCompleted || pendingAction !== null} onClick={() => applyAction('done')}>
@@ -172,10 +201,13 @@ export function NowTaskCard({ task, tone }: { task: NowTask; tone: NowTask['stat
 				<strong>{task.title}</strong>
 				<span>{timeLabel}</span>
 			</button>
-			{isFuture ? null : isCompleted ? <div className='task-secondary-actions task-secondary-actions--completed'>
+			{isCompleted ? <div className='task-secondary-actions task-secondary-actions--completed'>
 				<span className='task-completed-state'>{task.completionTiming === 'Early' ? t('now.doneEarly') : t('now.status.completed')}</span>
 				{canUndo ? <button className='secondary-action task-action task-action--compact' type='button' disabled={pendingAction !== null} onClick={() => void undo()}>{pendingAction === 'undo' ? t('common.loading') : t('common.undo')}</button> : null}
 				{task.completionTiming === 'Early' ? <button className='secondary-action task-action task-action--compact' type='button' disabled={pendingAction !== null} onClick={() => applyAction('notApplicable')}>{t('now.notApplicable')}</button> : null}
+			</div> : isFuture && !isSnoozed ? null : isSnoozed ? <div className='task-secondary-actions'>
+				<span className='task-snoozed-state'>{getSnoozedLabel(task, t)}</span>
+				<button className='secondary-action task-action task-action--compact' type='button' disabled={pendingAction !== null} onClick={() => void cancelSnooze()}>{pendingAction === 'cancelSnooze' ? t('common.loading') : t('now.cancelSnooze')}</button>
 			</div> : <div className='task-secondary-actions'>
 				{task.recurrenceType !== 'TimesPerWeek' ? <button className='secondary-action task-action task-action--compact' type='button' disabled={pendingAction !== null} onClick={() => applyAction('missed')}>
 					{t('now.miss')}
@@ -183,6 +215,12 @@ export function NowTaskCard({ task, tone }: { task: NowTask; tone: NowTask['stat
 				<button className='secondary-action task-action task-action--compact' type='button' disabled={pendingAction !== null} onClick={() => applyAction('notApplicable')}>
 					{task.recurrenceType === 'TimesPerWeek' ? t('now.notToday') : t('now.notApplicable')}
 				</button>
+				<div className='snooze-menu'>
+					<button className='secondary-action task-action task-action--compact' type='button' disabled={pendingAction !== null} onClick={() => setSnoozeOpen((open) => !open)}>{t('now.snooze')}</button>
+					{snoozeOpen ? <div className='snooze-menu__options'>
+						{(['1h', '6h', '12h', '24h', 'tomorrow'] as const).map((duration) => <button key={duration} type='button' onClick={() => void snooze(duration)}>{t(`now.snoozeOptions.${duration}`)}</button>)}
+					</div> : null}
+				</div>
 			</div>}
 		</article>
 	)
@@ -197,6 +235,9 @@ function cloneSnapshot(snapshot: { zones: NowZone[]; progress: NowProgress }) {
 }
 
 function getTimeLabel(task: NowTask, t: (key: string) => string) {
+	if (task.snoozedUntilUtc) {
+		return getSnoozedLabel(task, t)
+	}
 	if (task.occurrenceDate && task.occurrenceDate > new Date().toISOString().slice(0, 10)) {
 		const time = task.recommendedTime ?? task.availableFromTime
 		return `${t('now.scheduledFor')} ${new Date(`${task.occurrenceDate}T00:00:00`).toLocaleDateString()}${time ? ` · ${formatScheduleTime(time, task.timeZoneId)}` : ''}`
@@ -220,6 +261,11 @@ function getTimeLabel(task: NowTask, t: (key: string) => string) {
 		return getAssignmentLabel(task, t)
 	}
 	return task.zoneName ?? task.scope
+}
+
+function getSnoozedLabel(task: NowTask, t: (key: string) => string) {
+	if (!task.snoozedUntilUtc) return t('now.snoozed')
+	return `${t('now.snoozedUntil')} ${formatInstant(task.snoozedUntilUtc, task.timeZoneId)}`
 }
 
 function compareTasks(left: NowTask, right: NowTask) {

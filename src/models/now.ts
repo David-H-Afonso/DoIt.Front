@@ -27,6 +27,7 @@ export type NowTask = {
 	completionTiming?: string | null
 	completedAt?: string | null
 	completedByUserId?: string | null
+	snoozedUntilUtc?: string | null
 }
 
 export type NowZone = {
@@ -58,5 +59,12 @@ export type OccurrenceActionResponse = {
 	status: 'Pending' | 'Done' | 'Missed' | 'NotApplicable'
 	xpEarned: number
 	userXp?: UserXp | null
+}
+
+export type OccurrenceSnoozeResponse = {
+	occurrenceId: string
+	taskId: string
+	date: string
+	snoozedUntilUtc: string
 }
 import type { UserXp } from './xp'

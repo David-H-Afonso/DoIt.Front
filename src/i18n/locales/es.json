@@ -88,6 +88,11 @@
       "unavailable": "Aún no disponibles",
       "completed": "Realizadas"
     },
+    "snooze": "Posponer",
+    "snoozed": "Pospuesta",
+    "snoozedUntil": "Pospuesta hasta",
+    "cancelSnooze": "Cancelar posposición",
+    "snoozeOptions": { "1h": "1 hora", "6h": "6 horas", "12h": "12 horas", "24h": "24 horas", "tomorrow": "Hasta mañana" },
     "status": {
       "overdue": "Vencida",
       "available": "Disponible",

@@ -86,7 +86,12 @@
       "overdue": "Overdue",
       "available": "Available now",
       "unavailable": "Not available yet",
-    "completed": "Completed"
+    "completed": "Completed",
+    "snooze": "Snooze",
+    "snoozed": "Snoozed",
+    "snoozedUntil": "Snoozed until",
+    "cancelSnooze": "Cancel snooze",
+    "snoozeOptions": { "1h": "1 hour", "6h": "6 hours", "12h": "12 hours", "24h": "24 hours", "tomorrow": "Until tomorrow" }
     },
     "status": {
       "overdue": "Overdue",
