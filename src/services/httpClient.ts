@@ -3,11 +3,15 @@ import { environment } from '@/environments'
 export class ApiError extends Error {
 	status: number
 	code?: string
+	category?: string
+	requestId?: string
 
-	constructor(message: string, status: number, code?: string) {
+	constructor(message: string, status: number, code?: string, category?: string, requestId?: string) {
 		super(message)
 		this.status = status
 		this.code = code
+		this.category = category
+		this.requestId = requestId
 	}
 }
 
@@ -67,7 +71,12 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}, 
 		}
 
 		const message = typeof payload === 'string' ? payload : payload.message || 'Request failed'
-		throw new ApiError(message, response.status, typeof payload === 'string' ? undefined : payload.code)
+		throw new ApiError(
+			message,
+			response.status,
+			typeof payload === 'string' ? undefined : payload.code,
+			typeof payload === 'string' ? undefined : payload.category,
+			typeof payload === 'string' ? response.headers.get('x-request-id') ?? undefined : payload.requestId)
 	}
 
 	return payload as T

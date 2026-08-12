@@ -292,6 +292,9 @@
     "assignmentMode": "Asignación",
     "assignee": "Responsable",
     "selectAssignee": "Selecciona usuario",
+    "personalOwner": "Propietario personal",
+    "taskCreator": "Creador de la tarea",
+    "me": "Yo",
     "delete": "Borrar tarea",
     "deleteConfirm": "¿Borrar esta tarea definitivamente?",
     "deleted": "Tarea borrada"
@@ -384,6 +387,13 @@
     "undone": "Tarea restaurada",
     "notApplicable": "Tarea marcada como no aplicable",
     "error": "Algo no ha ido bien"
+  },
+  "errors": {
+    "generic": "No se pudo completar la acción. Inténtalo de nuevo.",
+    "conflict": "La tarea cambió mientras la guardabas. Recarga y vuelve a intentarlo.",
+    "assignment": "La asignación elegida no está disponible.",
+    "zone": "La zona elegida no está disponible.",
+    "duplicateTask": "Ya existe una tarea con ese nombre."
   },
   "zones": {
     "title": "Zonas",

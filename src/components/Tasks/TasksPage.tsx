@@ -138,7 +138,7 @@ export default function TasksPage() {
 				return <section className='task-inventory-group' key={group} aria-label={group === 'Overdue' ? t('tasks.overdue') : group === 'Manual' ? t('tasks.oneOff') : t('tasks.recurring')}>
 					<header><h2>{group === 'Overdue' ? t('tasks.overdue') : group === 'Manual' ? t('tasks.oneOff') : t('tasks.recurring')}</h2><span>{groupTasks.length}</span></header>
 					<div className='task-inventory'>
-						{groupTasks.map((task) => <TaskInventoryRow key={task.id} task={task} canEdit={task.createdByUserId === currentUser?.id} canAct={canActOnTask(task, currentUser?.id, currentUser?.role)} canUndo={canUndoOccurrence(task, currentUser?.id, currentUser?.role)} canUndoUpcoming={canUndoOccurrenceSummary(task, currentUser?.id, currentUser?.role)} onEdit={() => dispatch(openTaskEditor(task.id))} onMiss={() => void markMissed(task)} onUndo={() => void undoOccurrence(task)} onCompleteEarly={() => void completeEarly(task)} onUndoUpcoming={() => void undoUpcoming(task)} onArchive={() => dispatch(archiveTask(task.id))} onRestore={() => dispatch(restoreTask(task.id))} onDelete={() => {
+						{groupTasks.map((task) => <TaskInventoryRow key={task.id} task={task} canEdit={canEditTask(task, currentUser?.id, currentUser?.role)} canAct={canActOnTask(task, currentUser?.id, currentUser?.role)} canUndo={canUndoOccurrence(task, currentUser?.id, currentUser?.role)} canUndoUpcoming={canUndoOccurrenceSummary(task, currentUser?.id, currentUser?.role)} onEdit={() => dispatch(openTaskEditor(task.id))} onMiss={() => void markMissed(task)} onUndo={() => void undoOccurrence(task)} onCompleteEarly={() => void completeEarly(task)} onUndoUpcoming={() => void undoUpcoming(task)} onArchive={() => dispatch(archiveTask(task.id))} onRestore={() => dispatch(restoreTask(task.id))} onDelete={() => {
 							if (window.confirm(t('tasks.deleteConfirm'))) dispatch(deleteTask(task.id))
 						}} />)}
 					</div>
@@ -191,6 +191,10 @@ function canActOnTask(task: TaskItem, userId?: string, role?: string) {
 	if (!userId) return false
 	if (task.scope === 'Personal') return task.createdByUserId === userId
 	return role === 'Admin' || task.assignmentMode === 'Anyone' || task.assigneeIds.includes(userId)
+}
+
+function canEditTask(task: TaskItem, userId?: string, role?: string) {
+	return task.createdByUserId === userId || role === 'Admin' && task.scope === 'House'
 }
 
 function canUndoOccurrence(task: TaskItem, userId?: string, role?: string) {

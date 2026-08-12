@@ -19,7 +19,8 @@ export default function QuickCreateSheet() {
 	const titleId = useId()
 	const descriptionId = useId()
 	const zones = useAppSelector((state) => state.zones.items.filter((zone) => !zone.isArchived))
-   	const users = useAppSelector((state) => state.users.items.filter((user) => user.isActive))
+	const users = useAppSelector((state) => state.users.items.filter((user) => user.isActive))
+	const currentUser = useAppSelector((state) => state.auth.user)
 	const editingTaskId = useAppSelector((state) => state.ui.editingTaskId)
 	const quickCreateZoneId = useAppSelector((state) => state.ui.quickCreateZoneId)
 	const editingTask = useAppSelector((state) => state.tasks.items.find((task) => task.id === editingTaskId))
@@ -29,6 +30,7 @@ export default function QuickCreateSheet() {
 	const [scope, setScope] = useState('Personal')
 	const [assignmentMode, setAssignmentMode] = useState('Anyone')
 	const [assigneeId, setAssigneeId] = useState('')
+	const [personalOwner, setPersonalOwner] = useState<'creator' | 'admin'>('creator')
 	const [recurrence, setRecurrence] = useState('Manual')
 	const [detailsOpen, setDetailsOpen] = useState(false)
 	const [description, setDescription] = useState('')
@@ -63,6 +65,7 @@ export default function QuickCreateSheet() {
 			setScope('Personal')
 			setAssignmentMode('Anyone')
 			setAssigneeId('')
+			setPersonalOwner('creator')
 			setRecurrence('Manual')
 			setDescription('')
 			setWeekday('')
@@ -87,6 +90,7 @@ export default function QuickCreateSheet() {
 		setScope(editingTask.scope)
 		setAssignmentMode(editingTask.assignmentMode)
 		setAssigneeId(editingTask.assigneeIds[0] ?? '')
+		setPersonalOwner('creator')
 		setRecurrence(editingTask.schedule?.recurrenceType ?? 'Manual')
 		setWeekday(editingTask.schedule?.weekday?.toString() ?? '')
 		setWeekOfMonth(editingTask.schedule?.weekOfMonth?.toString() ?? '')
@@ -170,12 +174,13 @@ export default function QuickCreateSheet() {
 				},
 				assignmentMode: scope === 'House' ? assignmentMode : 'SingleUser',
 				assigneeIds: scope === 'House' && assignmentMode !== 'Anyone' && assigneeId ? [assigneeId] : [],
+				personalOwner: scope === 'Personal' && editingTask?.scope === 'House' && currentUser?.role === 'Admin' ? personalOwner : null,
 		}
 
 		if (editingTask) {
 			const result = await dispatch(updateTask({ id: editingTask.id, request }))
 			if (updateTask.rejected.match(result)) {
-				showToast({ type: 'error', title: result.error.message ?? t('toasts.error') })
+				showToast({ type: 'error', title: getFriendlyError(result.error.message, t) })
 				return
 			}
 			if (accessToken && taskNotificationOverride) {
@@ -205,7 +210,7 @@ export default function QuickCreateSheet() {
 		} else {
 			const result = await dispatch(createTask(request))
 			if (createTask.rejected.match(result)) {
-				showToast({ type: 'error', title: result.error.message ?? t('toasts.error') })
+				showToast({ type: 'error', title: getFriendlyError(result.error.message, t) })
 				return
 			}
 		}
@@ -228,7 +233,7 @@ export default function QuickCreateSheet() {
 		if (!editingTask || !window.confirm(t('quickCreate.deleteConfirm'))) return
 		const result = await dispatch(deleteTask(editingTask.id))
 		if (deleteTask.rejected.match(result)) {
-			showToast({ type: 'error', title: result.error.message ?? t('toasts.error') })
+			showToast({ type: 'error', title: getFriendlyError(result.error.message, t) })
 			return
 		}
 		dispatch(fetchNow())
@@ -381,19 +386,29 @@ export default function QuickCreateSheet() {
 						<div className='composer-chip-group' aria-label={t('quickCreate.scope')}>
 							<span>{t('quickCreate.scope')}</span>
 							<div>
-								<button type='button' className={scope === 'Personal' ? 'is-active' : undefined} aria-pressed={scope === 'Personal'} onClick={() => setScope('Personal')}>
+				<button type='button' className={scope === 'Personal' ? 'is-active' : undefined} aria-pressed={scope === 'Personal'} onClick={() => setScope('Personal')}>
 									{t('quickCreate.personal')}
 								</button>
-								<button type='button' className={scope === 'House' ? 'is-active' : undefined} aria-pressed={scope === 'House'} onClick={() => {
-									setScope('House')
-									setAssignmentMode('Anyone')
-								}}>
+				<button type='button' className={scope === 'House' ? 'is-active' : undefined} aria-pressed={scope === 'House'} onClick={() => {
+					setScope('House')
+					setAssignmentMode('Anyone')
+					setPersonalOwner('creator')
+				}}>
 									{t('quickCreate.house')}
 								</button>
-							</div>
-						</div>
+			</div>
+		</div>
+		{scope === 'Personal' && editingTask?.scope === 'House' && currentUser?.role === 'Admin' ? (
+			<label className='composer-field composer-field--full'>
+				{t('quickCreate.personalOwner')}
+				<select value={personalOwner} onChange={(event) => setPersonalOwner(event.target.value as 'creator' | 'admin')}>
+					<option value='creator'>{t('quickCreate.taskCreator')}</option>
+					<option value='admin'>{t('quickCreate.me')}</option>
+				</select>
+			</label>
+		) : null}
 
-						<label className='composer-field composer-field--full composer-recurrence-select'>
+		<label className='composer-field composer-field--full composer-recurrence-select'>
 							{t('quickCreate.recurrence')}
 							<select name='recurrence' value={recurrence} onChange={(event) => { setRecurrence(event.target.value); setDetailsOpen(true) }}>
 								<option value='Manual'>{t('quickCreate.manual')}</option>
@@ -491,6 +506,14 @@ function fromOverrideSelection(value: string): boolean | null {
 function localDate() {
 	const date = new Date()
 	return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+function getFriendlyError(message: string | undefined, t: (key: string) => string) {
+	if (message?.includes('data_changed') || message?.includes('data_conflict')) return t('errors.conflict')
+	if (message?.includes('invalid_assignee') || message?.includes('assignee_required')) return t('errors.assignment')
+	if (message?.includes('invalid_zone')) return t('errors.zone')
+	if (message?.includes('task_exists')) return t('errors.duplicateTask')
+	return message && !message.includes('HTTP') && !message.includes('Request failed') ? message : t('errors.generic')
 }
 
 function formatSchedulePreview(recurrence: string, startDate: string, interval: string, t: (key: string) => string) {

@@ -292,6 +292,9 @@
     "assignmentMode": "Assignment",
     "assignee": "Responsible",
     "selectAssignee": "Select user",
+    "personalOwner": "Personal owner",
+    "taskCreator": "Task creator",
+    "me": "Me",
     "delete": "Delete task",
     "deleteConfirm": "Permanently delete this task?",
     "deleted": "Task deleted"
@@ -387,6 +390,13 @@
     "undone": "Task restored",
     "notApplicable": "Task marked not applicable",
     "error": "Something went wrong"
+  },
+  "errors": {
+    "generic": "The action could not be completed. Try again.",
+    "conflict": "The task changed while you were saving. Reload and try again.",
+    "assignment": "The selected assignment is not available.",
+    "zone": "The selected zone is not available.",
+    "duplicateTask": "A task with that name already exists."
   },
   "zones": {
     "title": "Zones",
