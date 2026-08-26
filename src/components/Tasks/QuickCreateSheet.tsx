@@ -261,7 +261,18 @@ export default function QuickCreateSheet() {
 				<form onSubmit={submitTask} className='sheet-form composer-form'>
 					<label className='composer-title-field'>
 						<span>{t('quickCreate.taskTitle')}</span>
-						<input name='title' value={title} onChange={(event) => setTitle(event.target.value)} autoFocus />
+						<input
+							name='title'
+							value={title}
+							onChange={(event) => setTitle(event.target.value)}
+							onKeyDown={(event) => {
+								if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
+								event.preventDefault()
+								event.currentTarget.form?.requestSubmit()
+							}}
+							enterKeyHint='done'
+							autoFocus
+						/>
 					</label>
 
 					<button className='composer-disclosure' type='button' aria-expanded={detailsOpen} onClick={() => setDetailsOpen((open) => !open)}>

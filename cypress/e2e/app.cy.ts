@@ -120,8 +120,9 @@ describe('DoIt foundation', () => {
 		cy.wait('@createZone')
 		cy.contains('label', 'Qué hay que hacer').find('input').type(task.title)
 		cy.contains('label', 'Zona').find('select').select(zone.name)
-		cy.get('form.sheet-form').contains('button', 'Crear').click()
-		cy.wait('@createTask')
+		cy.contains('label', 'Qué hay que hacer').find('input').type('{enter}')
+		cy.wait('@createTask').its('request.body.title').should('eq', task.title)
+		cy.get('form.sheet-form').should('not.exist')
 
 		cy.contains(zone.name).should('be.visible')
 		cy.contains(task.title).should('be.visible')
