@@ -47,3 +47,17 @@ export type TaskNotificationOverride = {
 }
 
 export type UpdateTaskNotificationOverrideRequest = Omit<TaskNotificationOverride, 'taskId'>
+
+export type NotificationInboxItem = {
+	id: string
+	sourceType: string
+	sourceId: string
+	title: string
+	body: string
+	url: string
+	data?: Record<string, unknown> | null
+	dueAtUtc: string
+	createdAt: string
+	isRead: boolean
+	readAtUtc?: string | null
+}

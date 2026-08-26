@@ -7,6 +7,7 @@ import type {
 	UpdateNotificationPreferencesRequest,
 	UpdateTaskNotificationOverrideRequest,
 	WebPushConfig,
+	NotificationInboxItem,
 } from '@/models/notifications'
 import { environment } from '@/environments'
 import { apiRequest } from './httpClient'
@@ -65,6 +66,15 @@ export const NotificationService = {
 			method: 'DELETE',
 			accessToken,
 		}),
+
+	listInbox: (accessToken: string, unreadOnly = false) =>
+		apiRequest<NotificationInboxItem[]>(`${environment.apiRoutes.notifications.inbox}${unreadOnly ? '?unreadOnly=true' : ''}`, { accessToken }),
+
+	getInboxItem: (accessToken: string, id: string) =>
+		apiRequest<NotificationInboxItem>(environment.apiRoutes.notifications.inboxItem(id), { accessToken }),
+
+	markInboxRead: (accessToken: string, id: string) =>
+		apiRequest<void>(environment.apiRoutes.notifications.inboxRead(id), { method: 'POST', accessToken }),
 
 	async getStatus(accessToken: string): Promise<NotificationStatus> {
 		if (!isPushSupported()) return 'unsupported'

@@ -7,6 +7,8 @@ import { refreshSession } from '@/store/features/auth/authSlice'
 import { fetchTasks } from '@/store/features/tasks/tasksSlice'
 import { fetchXp } from '@/store/features/xp/xpSlice'
 import { fetchZones } from '@/store/features/zones/zonesSlice'
+import { fetchInbox } from '@/store/features/notifications/notificationsSlice'
+import { fetchProposals } from '@/store/features/proposals/proposalsSlice'
 import { fetchNow, setNowScope } from '@/store/features/now/nowSlice'
 import type { NowScope } from '@/models/now'
 import QuickCreateSheet from '@/components/Tasks/QuickCreateSheet'
@@ -19,6 +21,7 @@ const navItems = [
 	{ to: '/review', labelKey: 'navigation.review', icon: 'M8 7h10M8 12h10M8 17h6M4.5 7h.01M4.5 12h.01M4.5 17h.01' },
 	{ to: '/statistics', labelKey: 'navigation.statistics', icon: 'M5 19V5m0 14h14M9 16v-4m5 4V8m5 8V5' },
 	{ to: '/calendar', labelKey: 'navigation.calendar', icon: 'M6 4v3m12-3v3M4 9h16M5 6h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Zm3 7h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01' },
+	{ to: '/inbox', labelKey: 'navigation.inbox', icon: 'M4 5h16v14H4Zm0 9h4l1.5 2h5L16 14h4M8 9h8' },
 	{ to: '/profile', labelKey: 'navigation.profile', icon: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0' },
 ]
 
@@ -30,9 +33,11 @@ export default function AppShell() {
 	const accessTokenExpiresAt = useAppSelector((state) => state.auth.accessTokenExpiresAt)
 	const nowScope = useAppSelector((state) => state.now.scope)
 	const quickCreateOpen = useAppSelector((state) => state.ui.quickCreateOpen)
+	const unreadCount = useAppSelector((state) => state.notifications.items.filter((item) => !item.isRead).length)
+	const initialDataLoading = useAppSelector((state) => state.notifications.loading || state.proposals.loading)
 	const [moreOpen, setMoreOpen] = useState(false)
 	const progress = useAppSelector((state) => state.now.progress)
-	const moreActive = [navItems[2], navItems[3], navItems[5], navItems[6]].some((item) => location.pathname === item.to || location.pathname.startsWith(`${item.to}/`))
+	const moreActive = [navItems[2], navItems[3], navItems[5], navItems[6], navItems[7]].some((item) => location.pathname === item.to || location.pathname.startsWith(`${item.to}/`))
 	const completion = progress.total > 0 ? Math.round(((progress.done + progress.notApplicable) / progress.total) * 100) : 0
 	const titleKey = location.pathname.startsWith('/zones')
 		? 'zones.title'
@@ -44,7 +49,9 @@ export default function AppShell() {
 					? 'statistics.title'
 				: location.pathname.startsWith('/calendar')
 					? 'calendar.title'
-			: location.pathname.startsWith('/profile')
+					: location.pathname.startsWith('/inbox')
+						? 'notifications.title'
+					: location.pathname.startsWith('/profile')
 				? 'profile.title'
 				: 'now.title'
 	const showScope = location.pathname === '/' || location.pathname.startsWith('/now')
@@ -59,7 +66,9 @@ export default function AppShell() {
 			dispatch(fetchZones())
 			dispatch(fetchTasks())
 			dispatch(fetchNow())
-			dispatch(fetchXp())
+				dispatch(fetchXp())
+				dispatch(fetchInbox())
+				dispatch(fetchProposals())
 		}
 	}, [accessToken, accessTokenExpiresAt, dispatch])
 
@@ -92,7 +101,7 @@ export default function AppShell() {
 							<svg aria-hidden='true' viewBox='0 0 24 24'>
 								<path d={item.icon} />
 							</svg>
-							<span>{t(item.labelKey)}</span>
+							<span>{t(item.labelKey)}</span>{item.to === '/inbox' && unreadCount > 0 ? <b className='nav-unread-badge'>{unreadCount > 99 ? '99+' : unreadCount}</b> : null}
 						</NavLink>
 					))}
 				</nav>
@@ -131,6 +140,7 @@ export default function AppShell() {
 			</header>
 
 			<main className='app-content'>
+				{initialDataLoading ? <div className='app-loading' role='status'>{t('common.loading')}</div> : null}
 				<Outlet />
 			</main>
 
@@ -140,7 +150,7 @@ export default function AppShell() {
 						<svg aria-hidden='true' viewBox='0 0 24 24'>
 							<path d={item.icon} />
 						</svg>
-						<span>{t(item.labelKey)}</span>
+						<span>{t(item.labelKey)}</span>{item.to === '/inbox' && unreadCount > 0 ? <b className='nav-unread-badge'>{unreadCount > 99 ? '99+' : unreadCount}</b> : null}
 					</NavLink>
 				))}
 				<button className='mobile-dock__create' type='button' onClick={() => dispatch(openQuickCreate())} aria-label={t('navigation.create')}>
@@ -159,10 +169,10 @@ export default function AppShell() {
 					<span>{t('navigation.more')}</span>
 				</button>
 				{moreOpen ? <div className='mobile-dock__more-menu' role='menu'>
-					{[navItems[2], navItems[3], navItems[5], navItems[6]].map((item) => (
+					{[navItems[2], navItems[3], navItems[5], navItems[6], navItems[7]].map((item) => (
 						<NavLink key={item.to} to={item.to} role='menuitem' className={({ isActive }) => `mobile-dock__more-link${isActive ? ' is-active' : ''}`} onClick={() => setMoreOpen(false)}>
 							<svg aria-hidden='true' viewBox='0 0 24 24'><path d={item.icon} /></svg>
-							<span>{t(item.labelKey)}</span>
+							<span>{t(item.labelKey)}</span>{item.to === '/inbox' && unreadCount > 0 ? <b className='nav-unread-badge'>{unreadCount > 99 ? '99+' : unreadCount}</b> : null}
 						</NavLink>
 					))}
 				</div> : null}

@@ -54,6 +54,7 @@
     "review": "Revisión",
     "statistics": "Estadísticas",
     "calendar": "Calendario",
+    "inbox": "Bandeja",
     "profile": "Perfil",
     "more": "Más"
   },
@@ -163,6 +164,11 @@
     }
   },
   "notifications": {
+    "kicker": "Tu actividad",
+    "inboxDescription": "Avisos, propuestas y recordatorios en un mismo sitio.",
+    "all": "Todas",
+    "unread": "Sin leer",
+    "empty": "Tu bandeja está al día.",
     "title": "Notificaciones en el teléfono",
     "description": "Recibe recordatorios de calendario y tareas aunque DoIt esté cerrado.",
     "enable": "Activar notificaciones",
@@ -201,6 +207,20 @@
     "overrideOff": "Desactivado",
     "taskSettingsError": "No se pudo cargar la configuración de avisos de esta tarea.",
     "taskSettingsSaveError": "La tarea se guardó, pero no se pudo actualizar su configuración de avisos."
+  },
+  "inbox": {
+    "proposalsKicker": "Trabajo compartido",
+    "proposals": "Propuestas de tareas",
+    "noProposals": "Todavía no hay propuestas.",
+    "noDescription": "Sin descripción.",
+    "accept": "Aceptar",
+    "reject": "Rechazar",
+    "openTask": "Abrir tarea creada",
+    "completeTask": "Completar tarea",
+    "taskCompleted": "Tarea completada",
+    "proposalAccepted": "Propuesta aceptada",
+    "proposalRejected": "Propuesta rechazada",
+    "status": { "Pending": "Esperando respuesta", "Accepted": "Aceptada", "Rejected": "Rechazada" }
   },
   "calendar": {
     "kicker": "Agenda personal",
@@ -298,6 +318,25 @@
     "delete": "Borrar tarea",
     "deleteConfirm": "¿Borrar esta tarea definitivamente?",
     "deleted": "Tarea borrada"
+    ,"mode": "Acción",
+    "createMode": "Crear tarea",
+    "proposeMode": "Proponer tarea",
+    "proposeTo": "Proponer a",
+    "sendProposal": "Enviar propuesta",
+    "importance": "Importancia",
+    "importanceLow": "Baja",
+    "importanceNormal": "Normal",
+    "importanceHigh": "Alta",
+    "importanceCritical": "Crítica",
+    "complexity": "Complejidad",
+    "complexityVeryQuick": "Muy rápida",
+    "complexityEasy": "Fácil",
+    "complexityMedium": "Media",
+    "complexityHeavy": "Pesada",
+    "complexitySmallProject": "Proyecto pequeño",
+    "obligation": "Obligación",
+    "obligationRequired": "Obligatoria",
+    "obligationOptional": "Opcional"
   },
   "weekdays": {
     "0": "Domingo",
@@ -379,6 +418,7 @@
   },
   "toasts": {
     "taskCreated": "Tarea creada",
+    "proposalCreated": "Propuesta enviada",
     "taskUpdated": "Tarea actualizada",
     "zoneCreated": "Zona creada",
     "done": "Tarea completada",
@@ -393,7 +433,8 @@
     "conflict": "La tarea cambió mientras la guardabas. Recarga y vuelve a intentarlo.",
     "assignment": "La asignación elegida no está disponible.",
     "zone": "La zona elegida no está disponible.",
-    "duplicateTask": "Ya existe una tarea con ese nombre."
+    "duplicateTask": "Ya existe una tarea con ese nombre.",
+    "proposalTarget": "Elige otro usuario activo como destinatario de la propuesta."
   },
   "zones": {
     "title": "Zonas",

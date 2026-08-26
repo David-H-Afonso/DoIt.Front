@@ -22,6 +22,12 @@ export const fetchUsers = createAsyncThunk('users/fetch', async (_, { getState }
 	return UserService.list(state.auth.accessToken)
 })
 
+export const fetchActiveUsers = createAsyncThunk('users/fetchActive', async (_, { getState }) => {
+	const state = getState() as { auth: { accessToken: string | null } }
+	if (!state.auth.accessToken) return []
+	return UserService.listActive(state.auth.accessToken)
+})
+
 export const createUser = createAsyncThunk('users/create', async (request: CreateUserRequest, { getState }) => {
 	const state = getState() as { auth: { accessToken: string | null } }
 	if (!state.auth.accessToken) {
@@ -59,6 +65,9 @@ export const usersSlice = createSlice({
 			.addCase(fetchUsers.pending, (state) => {
 				state.loading = true
 				state.error = null
+			})
+			.addCase(fetchActiveUsers.fulfilled, (state, action: PayloadAction<AuthUser[]>) => {
+				state.items = action.payload
 			})
 			.addCase(fetchUsers.fulfilled, (state, action: PayloadAction<AuthUser[]>) => {
 				state.loading = false

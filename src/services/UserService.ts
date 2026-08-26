@@ -4,6 +4,7 @@ import { apiRequest } from './httpClient'
 
 export const UserService = {
 	list: (accessToken: string) => apiRequest<AuthUser[]>(environment.apiRoutes.users.list, { accessToken }),
+	listActive: (accessToken: string) => apiRequest<AuthUser[]>(environment.apiRoutes.users.active, { accessToken }),
 	create: (accessToken: string, request: CreateUserRequest) =>
 		apiRequest<AuthUser>(environment.apiRoutes.users.create, {
 			method: 'POST',

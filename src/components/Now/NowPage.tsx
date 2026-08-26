@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useI18n } from '@/i18n'
 import type { NowProgress, NowTask, NowZone, OccurrenceAction } from '@/models/now'
 import { OccurrenceService } from '@/services'
@@ -15,10 +15,19 @@ type PendingAction = OccurrenceAction | 'undo' | 'snooze' | 'cancelSnooze'
 
 export default function NowPage() {
 	const { t, formatDate } = useI18n()
+	const dispatch = useAppDispatch()
 	const { date, zones, upcoming, loading, error, scope } = useAppSelector((state) => state.now)
 	const displayZones = mergeUpcoming(zones, upcoming ?? [])
 	const visibleZones = displayZones.filter((zone) => zone.overdue.length > 0 || zone.available.length > 0 || zone.unavailable.length > 0 || (zone.completed?.length ?? 0) > 0)
 	const visibleTasks = visibleZones.flatMap((zone) => [...zone.overdue, ...zone.available, ...zone.unavailable, ...(zone.completed ?? [])])
+	const [searchParams] = useSearchParams()
+	const linkedOccurrenceId = searchParams.get('occurrenceId')
+	const linkedTaskId = visibleTasks.find((task) => task.occurrenceId === linkedOccurrenceId)?.id
+	useEffect(() => {
+		if (!linkedTaskId) return
+		dispatch(openTaskEditor(linkedTaskId))
+		window.requestAnimationFrame(() => document.getElementById(`task-occurrence-${linkedOccurrenceId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+	}, [dispatch, linkedOccurrenceId, linkedTaskId])
 	const actionablePending = visibleTasks.filter((task) => task.occurrenceStatus === 'Pending').length
 
 	const currentDate = date ? new Date(`${date}T00:00:00`) : new Date()
@@ -193,7 +202,7 @@ export function NowTaskCard({ task, tone }: { task: NowTask; tone: NowTask['stat
 	}
 
 	return (
-		<article className={`task-row task-row--${tone}`}>
+		<article id={`task-occurrence-${task.occurrenceId}`} className={`task-row task-row--${tone}`}>
 			<button className={`task-check${isCompleted ? ' task-check--completed' : ''}`} type='button' disabled={isFuture || isCompleted || pendingAction !== null} onClick={() => applyAction('done')}>
 				<span>{pendingAction === 'done' ? t('common.loading') : isCompleted ? t('now.status.completed') : tone === 'unavailable' ? t(`now.status.${tone}`) : t('now.complete')}</span>
 			</button>

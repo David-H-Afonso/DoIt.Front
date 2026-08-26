@@ -17,14 +17,16 @@ self.addEventListener('push', (event) => {
 	}
 
 	const title = payload.title || 'DoIt'
+	const payloadData = payload.data && typeof payload.data === 'object' ? payload.data : {}
+	const payloadUrl = payload.url || payloadData.url || (payloadData.occurrenceId ? `/now?occurrenceId=${encodeURIComponent(payloadData.occurrenceId)}` : payloadData.proposalId ? `/inbox?proposalId=${encodeURIComponent(payloadData.proposalId)}` : '/now')
 	const options = {
 		body: payload.body || 'Tienes una notificacion pendiente.',
 		icon: '/doit-pwa-192-v2.png',
 		badge: '/doit-pwa-192-v2.png',
 		tag: payload.tag || `doit-${Date.now()}`,
 		data: {
-			url: payload.url || '/now',
-			...(payload.data || {}),
+			url: payloadUrl,
+			...payloadData,
 		},
 		renotify: true,
 	}

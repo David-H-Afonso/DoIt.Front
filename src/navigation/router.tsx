@@ -12,6 +12,7 @@ import ZonesPage from '@/components/Zones/ZonesPage'
 import StatisticsPage from '@/components/Statistics/StatisticsPage'
 import CalendarPage from '@/components/Calendar/CalendarPage'
 import HouseholdAuthorizePage from '@/components/Integrations/HouseholdAuthorizePage'
+import InboxPage from '@/components/Inbox/InboxPage'
 
 export const router = createBrowserRouter([
 	{
@@ -41,6 +42,7 @@ export const router = createBrowserRouter([
 							{ path: 'review', element: <ReviewPage /> },
 							{ path: 'statistics', element: <StatisticsPage /> },
 							{ path: 'calendar', element: <CalendarPage /> },
+							{ path: 'inbox', element: <InboxPage /> },
 							{ path: 'profile', element: <ProfilePage /> },
 						],
 					},

@@ -11,6 +11,8 @@ import { uiReducer } from './features/ui/uiSlice'
 import { usersReducer } from './features/users/usersSlice'
 import { xpReducer } from './features/xp/xpSlice'
 import { zonesReducer } from './features/zones/zonesSlice'
+import { notificationsReducer } from './features/notifications/notificationsSlice'
+import { proposalsReducer } from './features/proposals/proposalsSlice'
 import { setUnauthorizedHandler } from '@/services/httpClient'
 
 const persistConfig = {
@@ -29,6 +31,8 @@ const combinedReducer = combineReducers({
 	users: usersReducer,
 	xp: xpReducer,
 	zones: zonesReducer,
+	notifications: notificationsReducer,
+	proposals: proposalsReducer,
 })
 
 const rootReducer = (state: ReturnType<typeof combinedReducer> | undefined, action: { type: string }) => {

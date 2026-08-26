@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '@/i18n'
 import { useToast } from '@/components/Toasts/useToast'
 import { archiveTask, deleteTask, fetchTasks, restoreTask } from '@/store/features/tasks/tasksSlice'
@@ -16,10 +17,12 @@ type SortMode = 'alphabetical' | 'createdDesc' | 'createdAsc'
 export default function TasksPage() {
 	const { t } = useI18n()
 	const dispatch = useAppDispatch()
+	const [searchParams] = useSearchParams()
 	const { showToast } = useToast()
 	const accessToken = useAppSelector((state) => state.auth.accessToken)
 	const currentUser = useAppSelector((state) => state.auth.user)
 	const tasks = useAppSelector((state) => state.tasks.items)
+	const linkedTaskId = searchParams.get('taskId')
 	const zones = useAppSelector((state) => state.zones.items.filter((zone) => !zone.isArchived))
 	const loading = useAppSelector((state) => state.tasks.loading)
 	const [status, setStatus] = useState<StatusFilter>('active')
@@ -27,6 +30,11 @@ export default function TasksPage() {
 	const [zoneId, setZoneId] = useState('')
 	const [recurrence, setRecurrence] = useState('')
 	const [sortMode, setSortMode] = useState<SortMode>('alphabetical')
+	useEffect(() => {
+		if (linkedTaskId && tasks.some((task) => task.id === linkedTaskId)) {
+			dispatch(openTaskEditor(linkedTaskId))
+		}
+	}, [dispatch, linkedTaskId, tasks])
 
 	const markMissed = async (task: TaskItem) => {
 		if (!accessToken || !task.occurrenceId) return

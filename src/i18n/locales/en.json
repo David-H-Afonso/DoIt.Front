@@ -54,6 +54,7 @@
     "review": "Review",
     "statistics": "Statistics",
     "calendar": "Calendar",
+    "inbox": "Inbox",
     "profile": "Profile",
     "more": "More"
   },
@@ -163,6 +164,11 @@
     }
   },
   "notifications": {
+    "kicker": "Your activity",
+    "inboxDescription": "Updates, proposals, and reminders in one place.",
+    "all": "All",
+    "unread": "Unread",
+    "empty": "Your inbox is clear.",
     "title": "Phone notifications",
     "description": "Receive calendar and task reminders even when DoIt is closed.",
     "enable": "Enable notifications",
@@ -201,6 +207,20 @@
     "overrideOff": "Off",
     "taskSettingsError": "Could not load this task's notification settings.",
     "taskSettingsSaveError": "The task was saved, but its notification settings could not be updated."
+  },
+  "inbox": {
+    "proposalsKicker": "Shared work",
+    "proposals": "Task proposals",
+    "noProposals": "No task proposals yet.",
+    "noDescription": "No description.",
+    "accept": "Accept",
+    "reject": "Reject",
+    "openTask": "Open resulting task",
+    "completeTask": "Complete task",
+    "taskCompleted": "Task completed",
+    "proposalAccepted": "Proposal accepted",
+    "proposalRejected": "Proposal rejected",
+    "status": { "Pending": "Waiting for your response", "Accepted": "Accepted", "Rejected": "Rejected" }
   },
   "calendar": {
     "kicker": "Personal agenda",
@@ -298,6 +318,25 @@
     "delete": "Delete task",
     "deleteConfirm": "Permanently delete this task?",
     "deleted": "Task deleted"
+    ,"mode": "Action",
+    "createMode": "Create task",
+    "proposeMode": "Propose task",
+    "proposeTo": "Propose to",
+    "sendProposal": "Send proposal",
+    "importance": "Importance",
+    "importanceLow": "Low",
+    "importanceNormal": "Normal",
+    "importanceHigh": "High",
+    "importanceCritical": "Critical",
+    "complexity": "Complexity",
+    "complexityVeryQuick": "Very quick",
+    "complexityEasy": "Easy",
+    "complexityMedium": "Medium",
+    "complexityHeavy": "Heavy",
+    "complexitySmallProject": "Small project",
+    "obligation": "Obligation",
+    "obligationRequired": "Required",
+    "obligationOptional": "Optional"
   },
   "weekdays": {
     "0": "Sunday",
@@ -382,6 +421,7 @@
   },
   "toasts": {
     "taskCreated": "Task created",
+    "proposalCreated": "Proposal sent",
     "taskUpdated": "Task updated",
     "zoneCreated": "Zone created",
     "done": "Task completed",
@@ -396,7 +436,8 @@
     "conflict": "The task changed while you were saving. Reload and try again.",
     "assignment": "The selected assignment is not available.",
     "zone": "The selected zone is not available.",
-    "duplicateTask": "A task with that name already exists."
+    "duplicateTask": "A task with that name already exists.",
+    "proposalTarget": "Choose another active user as the proposal target."
   },
   "zones": {
     "title": "Zones",

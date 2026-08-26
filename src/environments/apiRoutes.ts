@@ -43,6 +43,7 @@ export const apiRoutes = {
 	},
 	users: {
 		list: '/api/users',
+		active: '/api/users/active',
 		create: '/api/users',
 		byId: (id: string) => `/api/users/${id}`,
 		deactivate: (id: string) => `/api/users/${id}/deactivate`,
@@ -63,6 +64,16 @@ export const apiRoutes = {
 		subscription: '/api/notifications/subscription',
 		preferences: '/api/notifications/preferences',
 		task: (id: string) => `/api/notifications/tasks/${id}`,
+		inbox: '/api/notifications/inbox',
+		inboxItem: (id: string) => `/api/notifications/inbox/${id}`,
+		inboxRead: (id: string) => `/api/notifications/inbox/${id}/read`,
+	},
+	proposals: {
+		list: '/api/tasks/proposals',
+		create: '/api/tasks/proposals',
+		byId: (id: string) => `/api/tasks/proposals/${id}`,
+		accept: (id: string) => `/api/tasks/proposals/${id}/accept`,
+		reject: (id: string) => `/api/tasks/proposals/${id}/reject`,
 	},
 	calendar: {
 		events: '/api/calendar/events',

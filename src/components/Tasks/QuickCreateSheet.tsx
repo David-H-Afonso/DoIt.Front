@@ -5,10 +5,12 @@ import { closeQuickCreate } from '@/store/features/ui/uiSlice'
 import { createTask, deleteTask, updateTask } from '@/store/features/tasks/tasksSlice'
 import { createZone } from '@/store/features/zones/zonesSlice'
 import { fetchNow } from '@/store/features/now/nowSlice'
-import { fetchUsers } from '@/store/features/users/usersSlice'
+import { fetchActiveUsers } from '@/store/features/users/usersSlice'
+import { createProposal } from '@/store/features/proposals/proposalsSlice'
 import { useToast } from '@/components/Toasts/useToast'
 import type { TaskNotificationOverride } from '@/models/notifications'
 import { NotificationService } from '@/services'
+import type { CreateTaskRequest } from '@/models/task'
 
 type TaskNotificationBooleanKey = 'availableFromEnabled' | 'recommendedEnabled' | 'beforeAvailableUntilEnabled' | 'taskExpiredEnabled' | 'taskCompletedEnabled'
 
@@ -26,6 +28,7 @@ export default function QuickCreateSheet() {
 	const editingTask = useAppSelector((state) => state.tasks.items.find((task) => task.id === editingTaskId))
 	const accessToken = useAppSelector((state) => state.auth.accessToken)
 	const [title, setTitle] = useState('')
+	const [mode, setMode] = useState<'create' | 'propose'>('create')
 	const [zoneId, setZoneId] = useState('')
 	const [scope, setScope] = useState('Personal')
 	const [assignmentMode, setAssignmentMode] = useState('Anyone')
@@ -45,22 +48,27 @@ export default function QuickCreateSheet() {
 	const [recommendedTime, setRecommendedTime] = useState('')
 	const [extendsUntilNextOccurrence, setExtendsUntilNextOccurrence] = useState(true)
 	const [timeZoneId, setTimeZoneId] = useState(getBrowserTimeZone())
+	const [importance, setImportance] = useState('Normal')
+	const [complexity, setComplexity] = useState('Easy')
+	const [obligation, setObligation] = useState('Required')
 	const [zoneName, setZoneName] = useState('')
 	const [quickZoneOpen, setQuickZoneOpen] = useState(false)
 	const [taskNotificationOverride, setTaskNotificationOverride] = useState<TaskNotificationOverride | null>(null)
 	const [taskNotificationLoading, setTaskNotificationLoading] = useState(false)
 	const [taskNotificationError, setTaskNotificationError] = useState('')
 	const isEditing = Boolean(editingTask)
+	const isProposing = mode === 'propose' && !isEditing
 
 	useEffect(() => {
-		if (scope === 'House' && users.length === 0) {
-			dispatch(fetchUsers())
+		if ((scope === 'House' || isProposing) && users.length === 0) {
+			dispatch(fetchActiveUsers())
 		}
-	}, [dispatch, scope, users.length])
+	}, [dispatch, isProposing, scope, users.length])
 
 	useEffect(() => {
 		if (!editingTask) {
 			setTitle('')
+			setMode('create')
 			setZoneId(quickCreateZoneId ?? '')
 			setScope('Personal')
 			setAssignmentMode('Anyone')
@@ -79,12 +87,16 @@ export default function QuickCreateSheet() {
 			setRecommendedTime('')
 			setExtendsUntilNextOccurrence(true)
 			setTimeZoneId(getBrowserTimeZone())
+			setImportance('Normal')
+			setComplexity('Easy')
+			setObligation('Required')
 			setDetailsOpen(true)
 			setQuickZoneOpen(false)
 			return
 		}
 
 		setTitle(editingTask.title)
+		setMode('create')
 		setDescription(editingTask.description ?? '')
 		setZoneId(editingTask.zoneId ?? '')
 		setScope(editingTask.scope)
@@ -103,6 +115,9 @@ export default function QuickCreateSheet() {
 		setRecommendedTime(toInputTime(editingTask.schedule?.recommendedTime, editingTask.schedule?.timeZoneId))
 		setExtendsUntilNextOccurrence(editingTask.schedule?.extendsUntilNextOccurrence ?? true)
 		setTimeZoneId(editingTask.schedule?.timeZoneId ?? getBrowserTimeZone())
+		setImportance(editingTask.importance)
+		setComplexity(editingTask.complexity)
+		setObligation(editingTask.obligation)
 		setDetailsOpen(true)
 	}, [editingTask, quickCreateZoneId])
 
@@ -152,12 +167,15 @@ export default function QuickCreateSheet() {
 			return
 		}
 
-		const request = {
+		const request: CreateTaskRequest & { personalOwner?: 'creator' | 'admin' | null } = {
 				title,
 				description: description || null,
 				zoneId: zoneId || null,
 				scope,
 				taskType: recurrence === 'Manual' ? 'OneTime' : 'Routine',
+				importance,
+				complexity,
+				obligation,
 				schedule: {
 					recurrenceType: recurrence,
 					startDate: startDate || localDate(),
@@ -177,7 +195,18 @@ export default function QuickCreateSheet() {
 				personalOwner: scope === 'Personal' && editingTask?.scope === 'House' && currentUser?.role === 'Admin' ? personalOwner : null,
 		}
 
-		if (editingTask) {
+		if (isProposing) {
+			if (!accessToken || !assigneeId || assigneeId === currentUser?.id) {
+				showToast({ type: 'error', title: t('errors.proposalTarget') })
+				return
+			}
+			const result = await dispatch(createProposal({ ...request, targetUserId: assigneeId }))
+			if (createProposal.rejected.match(result)) {
+				showToast({ type: 'error', title: getFriendlyError(result.error.message, t) })
+				return
+			}
+			showToast({ type: 'success', title: t('toasts.proposalCreated') })
+		} else if (editingTask) {
 			const result = await dispatch(updateTask({ id: editingTask.id, request }))
 			if (updateTask.rejected.match(result)) {
 				showToast({ type: 'error', title: getFriendlyError(result.error.message, t) })
@@ -215,7 +244,7 @@ export default function QuickCreateSheet() {
 			}
 		}
 		dispatch(fetchNow())
-		showToast({ type: 'success', title: isEditing ? t('toasts.taskUpdated') : t('toasts.taskCreated') })
+		if (!isProposing) showToast({ type: 'success', title: isEditing ? t('toasts.taskUpdated') : t('toasts.taskCreated') })
 		dispatch(closeQuickCreate())
 	}
 
@@ -259,6 +288,10 @@ export default function QuickCreateSheet() {
 				</header>
 
 				<form onSubmit={submitTask} className='sheet-form composer-form'>
+					{!isEditing ? <div className='composer-mode' role='tablist' aria-label={t('quickCreate.mode')}>
+						<button type='button' role='tab' aria-selected={!isProposing} className={!isProposing ? 'is-active' : undefined} onClick={() => setMode('create')}>{t('quickCreate.createMode')}</button>
+						<button type='button' role='tab' aria-selected={isProposing} className={isProposing ? 'is-active' : undefined} onClick={() => { setMode('propose'); setScope('Personal'); setAssignmentMode('SingleUser') }}>{t('quickCreate.proposeMode')}</button>
+					</div> : null}
 					<label className='composer-title-field'>
 						<span>{t('quickCreate.taskTitle')}</span>
 						<input
@@ -274,6 +307,11 @@ export default function QuickCreateSheet() {
 							autoFocus
 						/>
 					</label>
+					<div className='composer-field-grid'>
+						<label className='composer-field'>{t('quickCreate.importance')}<select value={importance} onChange={(event) => setImportance(event.target.value)}><option value='Low'>{t('quickCreate.importanceLow')}</option><option value='Normal'>{t('quickCreate.importanceNormal')}</option><option value='High'>{t('quickCreate.importanceHigh')}</option><option value='Critical'>{t('quickCreate.importanceCritical')}</option></select></label>
+						<label className='composer-field'>{t('quickCreate.complexity')}<select value={complexity} onChange={(event) => setComplexity(event.target.value)}><option value='VeryQuick'>{t('quickCreate.complexityVeryQuick')}</option><option value='Easy'>{t('quickCreate.complexityEasy')}</option><option value='Medium'>{t('quickCreate.complexityMedium')}</option><option value='Heavy'>{t('quickCreate.complexityHeavy')}</option><option value='SmallProject'>{t('quickCreate.complexitySmallProject')}</option></select></label>
+						<label className='composer-field'>{t('quickCreate.obligation')}<select value={obligation} onChange={(event) => setObligation(event.target.value)}><option value='Required'>{t('quickCreate.obligationRequired')}</option><option value='Optional'>{t('quickCreate.obligationOptional')}</option></select></label>
+					</div>
 
 					<button className='composer-disclosure' type='button' aria-expanded={detailsOpen} onClick={() => setDetailsOpen((open) => !open)}>
 						<span>{t('quickCreate.moreDetails')}</span>
@@ -448,19 +486,19 @@ export default function QuickCreateSheet() {
 						</select>
 					</label>
 
-					{scope === 'House' ? (
+					{scope === 'House' || isProposing ? (
 						<div className='composer-house-panel'>
 							<div className='composer-chip-group' aria-label={t('quickCreate.assignmentMode')}>
 								<span>{t('quickCreate.assignmentMode')}</span>
 								<div>
-									<button type='button' className={assignmentMode === 'Anyone' ? 'is-active' : undefined} aria-pressed={assignmentMode === 'Anyone'} onClick={() => setAssignmentMode('Anyone')}>{t('assignment.anyone')}</button>
+									{!isProposing ? <button type='button' className={assignmentMode === 'Anyone' ? 'is-active' : undefined} aria-pressed={assignmentMode === 'Anyone'} onClick={() => setAssignmentMode('Anyone')}>{t('assignment.anyone')}</button> : null}
 									<button type='button' className={assignmentMode === 'SingleUser' ? 'is-active' : undefined} aria-pressed={assignmentMode === 'SingleUser'} onClick={() => setAssignmentMode('SingleUser')}>{t('assignment.singleUser')}</button>
 									<button type='button' className={assignmentMode === 'AllAssignees' ? 'is-active' : undefined} aria-pressed={assignmentMode === 'AllAssignees'} onClick={() => setAssignmentMode('AllAssignees')}>{t('assignment.allAssignees')}</button>
 								</div>
 							</div>
 							{assignmentMode !== 'Anyone' ? (
 								<label className='composer-field'>
-									{t('quickCreate.assignee')}
+									{isProposing ? t('quickCreate.proposeTo') : t('quickCreate.assignee')}
 									<select value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)} required>
 										<option value=''>{t('quickCreate.selectAssignee')}</option>
 										{users.map((user) => (
@@ -478,7 +516,7 @@ export default function QuickCreateSheet() {
 					<div className={`composer-actions${isEditing ? ' composer-actions--editing' : ''}`}>
 						{isEditing ? <button className='danger-action' type='button' onClick={() => void removeTask()}>{t('quickCreate.delete')}</button> : null}
 						<button className='secondary-action' type='button' onClick={() => dispatch(closeQuickCreate())}>{t('common.cancel')}</button>
-						<button className='primary-action composer-submit' type='submit'>{isEditing ? t('common.save') : t('common.create')}</button>
+						<button className='primary-action composer-submit' type='submit'>{isEditing ? t('common.save') : isProposing ? t('quickCreate.sendProposal') : t('common.create')}</button>
 					</div>
 				</form>
 
