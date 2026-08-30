@@ -67,6 +67,7 @@ export const apiRoutes = {
 		inbox: '/api/notifications/inbox',
 		inboxItem: (id: string) => `/api/notifications/inbox/${id}`,
 		inboxRead: (id: string) => `/api/notifications/inbox/${id}/read`,
+		inboxReadAll: '/api/notifications/inbox/read-all',
 	},
 	proposals: {
 		list: '/api/tasks/proposals',

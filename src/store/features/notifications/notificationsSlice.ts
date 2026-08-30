@@ -23,6 +23,12 @@ export const markNotificationRead = createAsyncThunk('notifications/markRead', a
 	return id
 })
 
+export const markAllNotificationsRead = createAsyncThunk('notifications/markAllRead', async (_, { getState }) => {
+	const state = getState() as { auth: { accessToken: string | null } }
+	if (!state.auth.accessToken) throw new Error('Missing access token')
+	await NotificationService.markAllInboxRead(state.auth.accessToken)
+})
+
 export const notificationsSlice = createSlice({
 	name: 'notifications',
 	initialState,
@@ -54,6 +60,13 @@ export const notificationsSlice = createSlice({
 					item.isRead = true
 					item.readAtUtc = new Date().toISOString()
 				}
+			})
+			.addCase(markAllNotificationsRead.fulfilled, (state) => {
+				const readAtUtc = new Date().toISOString()
+				state.items.forEach((item) => {
+					item.isRead = true
+					item.readAtUtc ??= readAtUtc
+				})
 			})
 		},
 })

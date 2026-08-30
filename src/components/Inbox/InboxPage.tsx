@@ -4,7 +4,7 @@ import { useI18n } from '@/i18n'
 import { useToast } from '@/components/Toasts/useToast'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { acceptProposal, rejectProposal } from '@/store/features/proposals/proposalsSlice'
-import { markNotificationRead } from '@/store/features/notifications/notificationsSlice'
+import { markAllNotificationsRead, markNotificationRead } from '@/store/features/notifications/notificationsSlice'
 import { fetchNow } from '@/store/features/now/nowSlice'
 import { fetchTasks } from '@/store/features/tasks/tasksSlice'
 import { OccurrenceService } from '@/services'
@@ -29,8 +29,9 @@ export default function InboxPage() {
 		if (!groupKey) return filtered
 		return filtered.filter((item) => belongsToPushGroup(item.dueAtUtc, groupKey))
 	}, [groupKey, notifications.items, unreadOnly])
-	const grouped = groupByDate(visibleNotifications, locale)
 	const selectedProposal = proposals.find((proposal) => proposal.id === selectedProposalId)
+	const unreadCount = notifications.items.filter((item) => !item.isRead).length
+	const sections = groupByCategory(visibleNotifications, t)
 
 	const openNotification = (item: NotificationInboxItem) => {
 		if (!item.isRead) void dispatch(markNotificationRead(item.id))
@@ -68,23 +69,36 @@ export default function InboxPage() {
 		}
 	}
 
+	const markAllRead = async () => {
+		if (unreadCount === 0) return
+		try {
+			await dispatch(markAllNotificationsRead()).unwrap()
+			showToast({ type: 'success', title: t('inbox.allMarkedRead') })
+		} catch {
+			showToast({ type: 'error', title: t('toasts.error') })
+		}
+	}
+
 	return <div className='page-grid inbox-page'>
-		<section className='inbox-heading'>
-			<div><span className='eyebrow'>{t('notifications.kicker')}</span><h1>{t('notifications.title')}</h1><p>{t('notifications.inboxDescription')}</p></div>
+		<section className='inbox-toolbar' aria-label={t('notifications.title')}>
 			<div className='inbox-tabs' role='tablist'>
 				<button type='button' className={!unreadOnly ? 'is-active' : undefined} aria-selected={!unreadOnly} onClick={() => setUnreadOnly(false)}>{t('notifications.all')}</button>
-				<button type='button' className={unreadOnly ? 'is-active' : undefined} aria-selected={unreadOnly} onClick={() => setUnreadOnly(true)}>{t('notifications.unread')} {notifications.items.filter((item) => !item.isRead).length > 0 ? `(${notifications.items.filter((item) => !item.isRead).length})` : ''}</button>
+				<button type='button' className={unreadOnly ? 'is-active' : undefined} aria-selected={unreadOnly} onClick={() => setUnreadOnly(true)}>{t('notifications.unread')} {unreadCount > 0 ? `(${unreadCount})` : ''}</button>
 			</div>
+			<button type='button' className='link-action inbox-mark-all' onClick={() => void markAllRead()} disabled={unreadCount === 0}>{t('inbox.markAllRead')}</button>
 		</section>
 		{notifications.error ? <p className='form-error'>{notifications.error}</p> : null}
 		{notifications.loading ? <p className='empty-state'>{t('common.loading')}</p> : null}
 		{!notifications.loading && visibleNotifications.length === 0 ? <p className='empty-state'>{t('notifications.empty')}</p> : null}
 		<div className='inbox-layout'>
 			<section className='inbox-list' aria-label={t('notifications.title')}>
-				{grouped.map(([date, items]) => <div className='inbox-day' key={date}><h2>{date}</h2>{items.map((item) => <article key={item.id} className={`inbox-item${item.isRead ? '' : ' is-unread'}`}>
-					<button type='button' className='inbox-item__open' onClick={() => openNotification(item)}><span className='inbox-item__marker' aria-hidden='true' /><span className='inbox-item__copy'><strong>{item.title}</strong><span>{item.body}</span><small>{formatTime(item.createdAt, locale)}</small></span><span aria-hidden='true' className='inbox-item__arrow'>›</span></button>
-					{getOccurrenceId(item) ? <button type='button' className='secondary-action inbox-item__complete' onClick={() => void completeNotificationTask(item)}>{t('inbox.completeTask')}</button> : null}
-				</article>)}</div>)}
+				{sections.map((section) => <section className='inbox-section' key={section.key} aria-labelledby={`inbox-section-${section.key}`}>
+					<header className='inbox-section__header'><div><SectionIcon name={section.icon} /><h2 id={`inbox-section-${section.key}`}>{section.label}</h2></div><span>{section.items.length}</span></header>
+					{groupByDate(section.items, locale).map(([date, items]) => <div className='inbox-day' key={date}><h3>{date}</h3>{items.map((item) => <article key={item.id} className={`inbox-item${item.isRead ? '' : ' is-unread'}`}>
+						<button type='button' className='inbox-item__open' onClick={() => openNotification(item)}><span className='inbox-item__marker' aria-hidden='true' /><span className='inbox-item__copy'><strong>{item.title}</strong><span>{item.body}</span><small>{formatTime(item.createdAt, locale)}</small></span><span aria-hidden='true' className='inbox-item__arrow'>›</span></button>
+						{getOccurrenceId(item) ? <button type='button' className='secondary-action inbox-item__complete' onClick={() => void completeNotificationTask(item)}>{t('inbox.completeTask')}</button> : null}
+					</article>)}</div>)}
+				</section>)}
 			</section>
 			<section className='proposal-panel' aria-labelledby='proposal-panel-title'>
 				<header><div><span className='eyebrow'>{t('inbox.proposalsKicker')}</span><h2 id='proposal-panel-title'>{t('inbox.proposals')}</h2></div><span className='profile-pending-card__badge'>{proposals.filter((proposal) => proposal.status === 'Pending').length}</span></header>
@@ -93,6 +107,38 @@ export default function InboxPage() {
 		</div>
 		{selectedProposal && !proposals.some((proposal) => proposal.id === selectedProposal.id) ? null : null}
 	</div>
+}
+
+type NotificationSection = { key: string; label: string; icon: 'availability' | 'suggestions' | 'shared' | 'activity'; items: NotificationInboxItem[] }
+
+function SectionIcon({ name }: { name: NotificationSection['icon'] }) {
+	const paths = {
+		availability: 'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+		suggestions: 'm12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7L12 3Z',
+		shared: 'm8 12 3 3 6-7M5 5h14v14H5z',
+		activity: 'm5 12 4 4L19 6',
+	} as const
+	return <span className='inbox-section__icon' aria-hidden='true'><svg viewBox='0 0 24 24'><path d={paths[name]} /></svg></span>
+}
+
+function groupByCategory(items: NotificationInboxItem[], t: (key: string) => string): NotificationSection[] {
+	const sections: NotificationSection[] = [
+		{ key: 'availability', label: t('inbox.sections.availability'), icon: 'availability', items: [] },
+		{ key: 'suggestions', label: t('inbox.sections.suggestions'), icon: 'suggestions', items: [] },
+		{ key: 'shared', label: t('inbox.sections.shared'), icon: 'shared', items: [] },
+		{ key: 'activity', label: t('inbox.sections.activity'), icon: 'activity', items: [] },
+	]
+	for (const item of items) {
+		const section = item.sourceType === 'TaskRecommended'
+			? sections[1]
+			: item.sourceType.startsWith('TaskProposal')
+				? sections[2]
+				: item.sourceType === 'TaskCompleted'
+					? sections[3]
+					: sections[0]
+		section.items.push(item)
+	}
+	return sections.filter((section) => section.items.length > 0)
 }
 
 function ProposalCard({ proposal, selected, canResolve, onSelect, onResolve, t }: { proposal: TaskProposal; selected: boolean; canResolve: boolean; onSelect: () => void; onResolve: (action: 'accept' | 'reject') => void; t: (key: string) => string }) {

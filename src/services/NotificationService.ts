@@ -76,6 +76,9 @@ export const NotificationService = {
 	markInboxRead: (accessToken: string, id: string) =>
 		apiRequest<void>(environment.apiRoutes.notifications.inboxRead(id), { method: 'POST', accessToken }),
 
+	markAllInboxRead: (accessToken: string) =>
+		apiRequest<void>(environment.apiRoutes.notifications.inboxReadAll, { method: 'POST', accessToken }),
+
 	async getStatus(accessToken: string): Promise<NotificationStatus> {
 		if (!isPushSupported()) return 'unsupported'
 		if (Notification.permission === 'denied') return 'denied'

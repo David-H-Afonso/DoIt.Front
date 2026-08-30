@@ -218,6 +218,9 @@
     "openTask": "Open resulting task",
     "completeTask": "Complete task",
     "taskCompleted": "Task completed",
+    "markAllRead": "Mark all as read",
+    "allMarkedRead": "Inbox marked as read",
+    "sections": { "availability": "Availability", "suggestions": "Suggestions", "shared": "Shared work", "activity": "Activity" },
     "proposalAccepted": "Proposal accepted",
     "proposalRejected": "Proposal rejected",
     "status": { "Pending": "Waiting for your response", "Accepted": "Accepted", "Rejected": "Rejected" }

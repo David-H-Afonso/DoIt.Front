@@ -2096,16 +2096,22 @@ progress {
 .app-loading { color: var(--color-text-muted); font-size: 0.8rem; }
 
 .inbox-page { gap: 18px; }
-.inbox-heading { display: flex; align-items: end; justify-content: space-between; gap: 18px; border-bottom: 1px solid var(--hairline); padding: 8px 0 18px; }
-.inbox-heading h1 { margin: 3px 0 4px; font-size: clamp(1.75rem, 5vw, 2.4rem); letter-spacing: -0.055em; }
-.inbox-heading p { max-width: 34rem; margin: 0; color: var(--color-text-muted); }
+.inbox-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; border-bottom: 1px solid var(--hairline); padding: 2px 0 14px; }
 .inbox-tabs { display: flex; gap: 5px; }
 .inbox-tabs button { min-height: 38px; border: 1px solid var(--hairline); border-radius: 999px; background: transparent; color: var(--color-text-muted); padding: 0 12px; font-size: 0.78rem; font-weight: 760; }
 .inbox-tabs button.is-active { border-color: var(--color-text); background: var(--color-text); color: var(--color-background); }
-.inbox-layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr); gap: 26px; align-items: start; }
+.inbox-mark-all { min-height: 38px; padding-inline: 12px; white-space: nowrap; }
+.inbox-layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr); gap: 26px; align-items: start; }
 .inbox-list, .proposal-panel { display: grid; gap: 18px; min-width: 0; }
+.inbox-section { display: grid; gap: 6px; min-width: 0; }
+.inbox-section__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 0 2px; }
+.inbox-section__header > div { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.inbox-section__header h2 { margin: 0; font-size: 1rem; letter-spacing: -.03em; }
+.inbox-section__header > span { color: var(--color-text-muted); font-size: .75rem; font-weight: 800; }
+.inbox-section__icon { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 9px; background: color-mix(in srgb, var(--color-primary) 11%, transparent); color: var(--color-primary); }
+.inbox-section__icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
 .inbox-day { display: grid; gap: 6px; }
-.inbox-day h2 { margin: 0; color: var(--color-text-muted); font-size: 0.75rem; font-weight: 800; letter-spacing: .05em; text-transform: capitalize; }
+.inbox-day h3 { margin: 7px 0 0; color: var(--color-text-muted); font-size: 0.72rem; font-weight: 800; letter-spacing: .05em; text-transform: capitalize; }
 .inbox-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; min-height: 82px; border-bottom: 1px solid var(--hairline); padding: 10px 4px; }
 .inbox-item__open { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-width: 0; border: 0; background: transparent; color: inherit; padding: 0; text-align: left; }
 .inbox-item__complete { white-space: nowrap; }
@@ -2140,11 +2146,20 @@ progress {
 .composer-mode button.is-active { background: var(--color-surface-strong); color: var(--color-text); box-shadow: 0 1px 4px rgba(0,0,0,.1); }
 
 @media (max-width: 700px) {
-	.inbox-heading { align-items: start; flex-direction: column; }
+	.inbox-toolbar { align-items: stretch; flex-direction: column; }
 	.inbox-tabs { width: 100%; }
 	.inbox-tabs button { flex: 1; }
+	.inbox-mark-all { width: 100%; }
 	.inbox-layout { grid-template-columns: 1fr; }
+	.inbox-item { grid-template-columns: 1fr; align-items: stretch; gap: 8px; padding-block: 12px; }
+	.inbox-item__complete { justify-self: start; margin-left: 20px; }
+	.inbox-item__copy strong, .inbox-item__copy > span { white-space: normal; }
 	.proposal-card__details dl { grid-template-columns: 1fr 1fr; }
+}
+
+@media (min-width: 701px) and (max-width: 820px) {
+	.inbox-layout { grid-template-columns: 1fr; }
+	.proposal-panel { max-width: none; }
 }
 
 .upcoming-panel {

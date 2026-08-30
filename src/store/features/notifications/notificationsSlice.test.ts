@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { notificationsReducer, addNotification, markNotificationRead } from './notificationsSlice'
+import { notificationsReducer, addNotification, markAllNotificationsRead, markNotificationRead } from './notificationsSlice'
 
 const item = { id: 'n-1', sourceType: 'TaskProposalCreated', sourceId: 'p-1', title: 'Proposal', body: 'A task was proposed', url: '/inbox', data: null, dueAtUtc: '2026-08-26T10:00:00Z', createdAt: '2026-08-26T10:00:00Z', isRead: false, readAtUtc: null }
 
@@ -12,5 +12,11 @@ describe('notificationsSlice', () => {
 	it('marks a notification read when the request resolves', () => {
 		const state = notificationsReducer({ items: [item], loading: false, error: null }, markNotificationRead.fulfilled('n-1', 'request'))
 		expect(state.items[0].isRead).toBe(true)
+	})
+
+	it('marks every notification read when the bulk request resolves', () => {
+		const state = notificationsReducer({ items: [item, { ...item, id: 'n-2', isRead: true }], loading: false, error: null }, markAllNotificationsRead.fulfilled(undefined, 'request', undefined))
+
+		expect(state.items.every((notification) => notification.isRead)).toBe(true)
 	})
 })

@@ -116,6 +116,17 @@ describe('NotificationService', () => {
 	})
 	})
 
+	it('marks the whole inbox as read', async () => {
+		apiRequestMock.mockResolvedValueOnce(undefined)
+
+		await NotificationService.markAllInboxRead('access-token')
+
+		expect(apiRequestMock).toHaveBeenCalledWith('/api/notifications/inbox/read-all', {
+			method: 'POST',
+			accessToken: 'access-token',
+		})
+	})
+
 	it('reads, updates, and deletes a task notification override', async () => {
 		const override = {
 			taskId: 'task-id',

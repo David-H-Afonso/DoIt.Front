@@ -218,6 +218,9 @@
     "openTask": "Abrir tarea creada",
     "completeTask": "Completar tarea",
     "taskCompleted": "Tarea completada",
+    "markAllRead": "Marcar todo como leído",
+    "allMarkedRead": "Bandeja marcada como leída",
+    "sections": { "availability": "Disponibilidad", "suggestions": "Sugerencias", "shared": "Trabajo compartido", "activity": "Actividad" },
     "proposalAccepted": "Propuesta aceptada",
     "proposalRejected": "Propuesta rechazada",
     "status": { "Pending": "Esperando respuesta", "Accepted": "Aceptada", "Rejected": "Rechazada" }
