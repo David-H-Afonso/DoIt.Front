@@ -8,7 +8,7 @@ import { markAllNotificationsRead, markNotificationRead } from '@/store/features
 import { fetchNow } from '@/store/features/now/nowSlice'
 import { fetchTasks } from '@/store/features/tasks/tasksSlice'
 import { OccurrenceService } from '@/services'
-import type { NotificationInboxItem } from '@/models/notifications'
+import { isCountedNotification, type NotificationInboxItem } from '@/models/notifications'
 import type { TaskProposal } from '@/models/proposal'
 
 export default function InboxPage() {
@@ -23,14 +23,19 @@ export default function InboxPage() {
 	const accessToken = useAppSelector((state) => state.auth.accessToken)
 	const [unreadOnly, setUnreadOnly] = useState(false)
 	const [selectedProposalId, setSelectedProposalId] = useState<string | null>(searchParams.get('proposalId'))
+	const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
+	const [proposalsOpen, setProposalsOpen] = useState(true)
 	const groupKey = searchParams.get('groupKey')
 	const visibleNotifications = useMemo(() => {
-		const filtered = unreadOnly ? notifications.items.filter((item) => !item.isRead) : notifications.items
+		const filtered = unreadOnly
+			? notifications.items.filter((item) => !item.isRead && isCountedNotification(item))
+			: notifications.items
 		if (!groupKey) return filtered
 		return filtered.filter((item) => belongsToPushGroup(item.dueAtUtc, groupKey))
 	}, [groupKey, notifications.items, unreadOnly])
 	const selectedProposal = proposals.find((proposal) => proposal.id === selectedProposalId)
-	const unreadCount = notifications.items.filter((item) => !item.isRead).length
+	const unreadCount = notifications.items.filter((item) => !item.isRead && isCountedNotification(item)).length
+	const hasUnreadItems = notifications.items.some((item) => !item.isRead)
 	const sections = groupByCategory(visibleNotifications, t)
 
 	const openNotification = (item: NotificationInboxItem) => {
@@ -70,7 +75,7 @@ export default function InboxPage() {
 	}
 
 	const markAllRead = async () => {
-		if (unreadCount === 0) return
+		if (!hasUnreadItems) return
 		try {
 			await dispatch(markAllNotificationsRead()).unwrap()
 			showToast({ type: 'success', title: t('inbox.allMarkedRead') })
@@ -85,24 +90,29 @@ export default function InboxPage() {
 				<button type='button' className={!unreadOnly ? 'is-active' : undefined} aria-selected={!unreadOnly} onClick={() => setUnreadOnly(false)}>{t('notifications.all')}</button>
 				<button type='button' className={unreadOnly ? 'is-active' : undefined} aria-selected={unreadOnly} onClick={() => setUnreadOnly(true)}>{t('notifications.unread')} {unreadCount > 0 ? `(${unreadCount})` : ''}</button>
 			</div>
-			<button type='button' className='link-action inbox-mark-all' onClick={() => void markAllRead()} disabled={unreadCount === 0}>{t('inbox.markAllRead')}</button>
+			<button type='button' className='link-action inbox-mark-all' onClick={() => void markAllRead()} disabled={!hasUnreadItems}>{t('inbox.markAllRead')}</button>
 		</section>
 		{notifications.error ? <p className='form-error'>{notifications.error}</p> : null}
 		{notifications.loading ? <p className='empty-state'>{t('common.loading')}</p> : null}
 		{!notifications.loading && visibleNotifications.length === 0 ? <p className='empty-state'>{t('notifications.empty')}</p> : null}
 		<div className='inbox-layout'>
 			<section className='inbox-list' aria-label={t('notifications.title')}>
-				{sections.map((section) => <section className='inbox-section' key={section.key} aria-labelledby={`inbox-section-${section.key}`}>
-					<header className='inbox-section__header'><div><SectionIcon name={section.icon} /><h2 id={`inbox-section-${section.key}`}>{section.label}</h2></div><span>{section.items.length}</span></header>
-					{groupByDate(section.items, locale).map(([date, items]) => <div className='inbox-day' key={date}><h3>{date}</h3>{items.map((item) => <article key={item.id} className={`inbox-item${item.isRead ? '' : ' is-unread'}`}>
-						<button type='button' className='inbox-item__open' onClick={() => openNotification(item)}><span className='inbox-item__marker' aria-hidden='true' /><span className='inbox-item__copy'><strong>{item.title}</strong><span>{item.body}</span><small>{formatTime(item.createdAt, locale)}</small></span><span aria-hidden='true' className='inbox-item__arrow'>›</span></button>
-						{getOccurrenceId(item) ? <button type='button' className='secondary-action inbox-item__complete' onClick={() => void completeNotificationTask(item)}>{t('inbox.completeTask')}</button> : null}
-					</article>)}</div>)}
-				</section>)}
+				{sections.map((section) => {
+					const isCollapsed = collapsedSections.has(section.key)
+					return <section className='inbox-section' key={section.key} aria-labelledby={`inbox-section-${section.key}`}>
+						<header className='inbox-section__header'><button type='button' aria-expanded={!isCollapsed} aria-controls={`inbox-section-content-${section.key}`} onClick={() => setCollapsedSections((current) => { const next = new Set(current); if (next.has(section.key)) next.delete(section.key); else next.add(section.key); return next })}><span><SectionIcon name={section.icon} /><h2 id={`inbox-section-${section.key}`}>{section.label}</h2></span><span className='inbox-section__header-meta'><small>{section.items.length}</small><span aria-hidden='true' className={`inbox-section__chevron${isCollapsed ? '' : ' is-open'}`}>⌄</span></span></button></header>
+						{!isCollapsed ? <div id={`inbox-section-content-${section.key}`}>
+							{groupByDate(section.items, locale).map(([date, items]) => <div className='inbox-day' key={date}><h3>{date}</h3>{items.map((item) => <article key={item.id} className={`inbox-item${item.isRead ? '' : ' is-unread'}`}>
+								<button type='button' className='inbox-item__open' onClick={() => openNotification(item)}><span className='inbox-item__marker' aria-hidden='true' /><span className='inbox-item__copy'><strong>{item.title}</strong><span>{item.body}</span><small>{formatTime(item.createdAt, locale)}</small></span><span aria-hidden='true' className='inbox-item__arrow'>›</span></button>
+								{getOccurrenceId(item) ? <button type='button' className='secondary-action inbox-item__complete' onClick={() => void completeNotificationTask(item)}>{t('inbox.completeTask')}</button> : null}
+							</article>)}</div>)}
+						</div> : null}
+					</section>
+				})}
 			</section>
 			<section className='proposal-panel' aria-labelledby='proposal-panel-title'>
-				<header><div><span className='eyebrow'>{t('inbox.proposalsKicker')}</span><h2 id='proposal-panel-title'>{t('inbox.proposals')}</h2></div><span className='profile-pending-card__badge'>{proposals.filter((proposal) => proposal.status === 'Pending').length}</span></header>
-				{proposals.length === 0 ? <p className='empty-state'>{t('inbox.noProposals')}</p> : proposals.map((proposal) => <ProposalCard key={proposal.id} proposal={proposal} selected={proposal.id === selectedProposalId} canResolve={proposal.targetUserId === currentUserId} onSelect={() => setSelectedProposalId(proposal.id)} onResolve={(action) => void resolveProposal(proposal, action)} t={t} />)}
+				<header><button type='button' className='proposal-panel__toggle' aria-expanded={proposalsOpen} aria-controls='inbox-proposals-content' onClick={() => setProposalsOpen((open) => !open)}><span><span className='eyebrow'>{t('inbox.proposalsKicker')}</span><h2 id='proposal-panel-title'>{t('inbox.proposals')}</h2></span><span className='proposal-panel__header-meta'><span className='profile-pending-card__badge'>{proposals.filter((proposal) => proposal.status === 'Pending').length}</span><span aria-hidden='true' className={`inbox-section__chevron${proposalsOpen ? ' is-open' : ''}`}>⌄</span></span></button></header>
+				{proposalsOpen ? <div id='inbox-proposals-content'>{proposals.length === 0 ? <p className='empty-state'>{t('inbox.noProposals')}</p> : proposals.map((proposal) => <ProposalCard key={proposal.id} proposal={proposal} selected={proposal.id === selectedProposalId} canResolve={proposal.targetUserId === currentUserId} onSelect={() => setSelectedProposalId(proposal.id)} onResolve={(action) => void resolveProposal(proposal, action)} t={t} />)}</div> : null}
 			</section>
 		</div>
 		{selectedProposal && !proposals.some((proposal) => proposal.id === selectedProposal.id) ? null : null}

@@ -184,7 +184,7 @@
     "disabledToast": "Notificaciones desactivadas",
     "actionError": "No se pudieron actualizar las notificaciones.",
     "preferencesTitle": "Qué quieres recibir",
-    "preferencesDescription": "Estas preferencias son personales. Los avisos se aplican a tus dispositivos activos.",
+    "preferencesDescription": "Controlan los avisos automáticos en tus dispositivos. Aunque los desactives, el aviso seguirá apareciendo en la bandeja como información y no contará en su contador.",
     "availableFrom": "Tarea disponible",
     "availableFromDescription": "Avisar cuando empiece la ventana de la tarea.",
     "recommended": "Hora recomendada",

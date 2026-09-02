@@ -13,6 +13,7 @@ import { fetchNow, setNowScope } from '@/store/features/now/nowSlice'
 import type { NowScope } from '@/models/now'
 import QuickCreateSheet from '@/components/Tasks/QuickCreateSheet'
 import DoItLogo from '@/components/Brand/DoItLogo'
+import { isCountedNotification } from '@/models/notifications'
 
 const navItems = [
 	{ to: '/now', labelKey: 'navigation.now', icon: 'M8 5.5h8M8 12h8M8 18.5h5M5 5.5h.01M5 12h.01M5 18.5h.01' },
@@ -33,7 +34,7 @@ export default function AppShell() {
 	const accessTokenExpiresAt = useAppSelector((state) => state.auth.accessTokenExpiresAt)
 	const nowScope = useAppSelector((state) => state.now.scope)
 	const quickCreateOpen = useAppSelector((state) => state.ui.quickCreateOpen)
-	const unreadCount = useAppSelector((state) => state.notifications.items.filter((item) => !item.isRead).length)
+	const unreadCount = useAppSelector((state) => state.notifications.items.filter((item) => !item.isRead && isCountedNotification(item)).length)
 	const initialDataLoading = useAppSelector((state) => state.notifications.loading || state.proposals.loading)
 	const [moreOpen, setMoreOpen] = useState(false)
 	const progress = useAppSelector((state) => state.now.progress)

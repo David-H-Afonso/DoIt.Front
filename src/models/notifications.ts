@@ -61,3 +61,9 @@ export type NotificationInboxItem = {
 	isRead: boolean
 	readAtUtc?: string | null
 }
+
+export function isCountedNotification(item: Pick<NotificationInboxItem, 'sourceType'>) {
+	return item.sourceType === 'TaskProposalCreated'
+		|| item.sourceType === 'TaskProposalAccepted'
+		|| item.sourceType === 'TaskProposalRejected'
+}

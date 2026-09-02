@@ -184,7 +184,7 @@
     "disabledToast": "Notifications disabled",
     "actionError": "Could not update notifications.",
     "preferencesTitle": "What you want to receive",
-    "preferencesDescription": "These preferences are personal and apply to your active devices.",
+    "preferencesDescription": "These settings control automatic alerts on your devices. Even when disabled, the update remains visible in the inbox as information and does not count toward its badge.",
     "availableFrom": "Task becomes available",
     "availableFromDescription": "Notify when the task window opens.",
     "recommended": "Recommended time",

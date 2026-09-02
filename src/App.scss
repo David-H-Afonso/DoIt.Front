@@ -2105,9 +2105,13 @@ progress {
 .inbox-list, .proposal-panel { display: grid; gap: 18px; min-width: 0; }
 .inbox-section { display: grid; gap: 6px; min-width: 0; }
 .inbox-section__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 0 2px; }
-.inbox-section__header > div { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.inbox-section__header button { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 44px; border: 0; background: transparent; color: inherit; padding: 0; text-align: left; }
+.inbox-section__header button > span:first-child { display: flex; align-items: center; gap: 9px; min-width: 0; }
 .inbox-section__header h2 { margin: 0; font-size: 1rem; letter-spacing: -.03em; }
-.inbox-section__header > span { color: var(--color-text-muted); font-size: .75rem; font-weight: 800; }
+.inbox-section__header-meta, .proposal-panel__header-meta { display: flex; align-items: center; gap: 10px; color: var(--color-text-muted); font-size: .75rem; font-weight: 800; }
+.inbox-section__header-meta small { font-size: inherit; }
+.inbox-section__chevron { display: inline-block; font-size: 1.15rem; line-height: 1; transform: rotate(0deg); transition: transform 160ms ease; }
+.inbox-section__chevron.is-open { transform: rotate(180deg); }
 .inbox-section__icon { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 9px; background: color-mix(in srgb, var(--color-primary) 11%, transparent); color: var(--color-primary); }
 .inbox-section__icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
 .inbox-day { display: grid; gap: 6px; }
@@ -2124,7 +2128,9 @@ progress {
 .inbox-item__copy small { color: var(--color-text-muted); font-size: 0.72rem; }
 .inbox-item__arrow { color: var(--color-text-muted); font-size: 1.25rem; }
 .proposal-panel { border: 1px solid var(--hairline); border-radius: 22px; background: var(--surface-raised); padding: 16px; box-shadow: var(--shadow-soft); }
-.proposal-panel > header { display: flex; align-items: start; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--hairline); padding-bottom: 12px; }
+.proposal-panel > header { border-bottom: 1px solid var(--hairline); padding-bottom: 12px; }
+.proposal-panel__toggle { display: flex; align-items: start; justify-content: space-between; gap: 12px; width: 100%; min-height: 44px; border: 0; background: transparent; color: inherit; padding: 0; text-align: left; }
+.proposal-panel__toggle > span:first-child { display: grid; gap: 0; }
 .proposal-panel h2 { margin: 3px 0 0; font-size: 1.2rem; letter-spacing: -.04em; }
 .proposal-card { border-bottom: 1px solid var(--hairline); padding: 4px 0; }
 .proposal-card:last-child { border-bottom: 0; }
@@ -2868,7 +2874,7 @@ svg {
 	.command-rail__item {
 		position: relative;
 		display: grid;
-		grid-template-columns: 24px minmax(0, 1fr);
+		grid-template-columns: 24px minmax(0, 1fr) auto;
 		align-items: center;
 		gap: 9px;
 		min-height: 42px;
