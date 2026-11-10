@@ -13,6 +13,7 @@ import { NotificationServiceError, type NotificationStatus } from '@/services/No
 import type { BackupSchedule } from '@/models/backup'
 import type { NotificationPreferences } from '@/models/notifications'
 import { ApiError } from '@/services/httpClient'
+import { setTaskNotificationPreferences } from '@/store/features/taskNotifications/taskNotificationsSlice'
 
 type CsvTaskRow = {
 	title: string
@@ -158,6 +159,7 @@ export default function ProfilePage() {
 		try {
 			const saved = await NotificationService.updatePreferences(accessToken, notificationPreferences)
 			setNotificationPreferences(saved)
+			dispatch(setTaskNotificationPreferences(saved))
 			showToast({ type: 'success', title: t('notifications.preferencesSaved') })
 		} catch {
 			setNotificationPreferencesError(t('notifications.preferencesError'))
@@ -335,7 +337,7 @@ export default function ProfilePage() {
 				<div className='profile-avatar' aria-hidden='true'>{(user?.displayName ?? 'D').slice(0, 1).toUpperCase()}</div>
 				<div>
 					<span className='eyebrow'>{user?.role}</span>
-					<h1>{user?.displayName}</h1>
+					<h2>{user?.displayName}</h2>
 					<p>{user?.username}</p>
 				</div>
 			</section>
@@ -348,7 +350,7 @@ export default function ProfilePage() {
 					</div>
 					<span className='profile-xp-card__level'>{t('profile.level')} {xp?.currentLevel ?? 1}</span>
 				</div>
-				<div className='profile-progress-track' aria-label={`${progress}%`}><span style={{ width: `${progress}%` }} /></div>
+				<div className='profile-progress-track' role='progressbar' aria-label={t('profile.progress')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><span style={{ width: `${progress}%` }} /></div>
 				<div className='profile-xp-card__footer'><span>{t('profile.weeklyXp')}: {xp?.weeklyXp ?? 0}</span><span>{progress}%</span></div>
 			</section>
 

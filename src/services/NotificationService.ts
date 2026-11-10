@@ -4,6 +4,8 @@ import type {
 	PushSubscriptionRequest,
 	PushSubscriptionStatus,
 	TaskNotificationOverride,
+	TaskNotificationSettings,
+	TaskNotificationUpdate,
 	UpdateNotificationPreferencesRequest,
 	UpdateTaskNotificationOverrideRequest,
 	WebPushConfig,
@@ -48,6 +50,16 @@ export const NotificationService = {
 		apiRequest<NotificationPreferences>(environment.apiRoutes.notifications.preferences, {
 			method: 'PUT',
 			body: request,
+			accessToken,
+		}),
+
+	getTaskSettings: (accessToken: string) =>
+		apiRequest<TaskNotificationSettings>(environment.apiRoutes.notifications.tasks, { accessToken }),
+
+	updateTaskOverrides: (accessToken: string, tasks: TaskNotificationUpdate[]) =>
+		apiRequest<TaskNotificationOverride[]>(environment.apiRoutes.notifications.tasks, {
+			method: 'PUT',
+			body: { tasks },
 			accessToken,
 		}),
 

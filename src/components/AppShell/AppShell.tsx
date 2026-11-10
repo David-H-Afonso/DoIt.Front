@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { useEffect, useState, type CSSProperties } from 'react'
+import { Suspense, useEffect, useId, useRef, useState, type CSSProperties } from 'react'
 import { useI18n } from '@/i18n'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { openQuickCreate } from '@/store/features/ui/uiSlice'
@@ -37,6 +37,9 @@ export default function AppShell() {
 	const unreadCount = useAppSelector((state) => state.notifications.items.filter((item) => !item.isRead && isCountedNotification(item)).length)
 	const initialDataLoading = useAppSelector((state) => state.notifications.loading || state.proposals.loading)
 	const [moreOpen, setMoreOpen] = useState(false)
+	const moreMenuId = useId()
+	const moreMenuRef = useRef<HTMLDivElement>(null)
+	const moreTriggerRef = useRef<HTMLButtonElement>(null)
 	const progress = useAppSelector((state) => state.now.progress)
 	const moreActive = [navItems[2], navItems[3], navItems[5], navItems[6], navItems[7]].some((item) => location.pathname === item.to || location.pathname.startsWith(`${item.to}/`))
 	const completion = progress.total > 0 ? Math.round(((progress.done + progress.notApplicable) / progress.total) * 100) : 0
@@ -51,16 +54,48 @@ export default function AppShell() {
 				: location.pathname.startsWith('/calendar')
 					? 'calendar.title'
 					: location.pathname.startsWith('/inbox')
-						? 'notifications.title'
+						? 'navigation.inbox'
 					: location.pathname.startsWith('/profile')
 				? 'profile.title'
 				: 'now.title'
 	const showScope = location.pathname === '/' || location.pathname.startsWith('/now')
 	const isZoneDetail = location.pathname.startsWith('/zones/')
+	const isTaskWorkspace = location.pathname.startsWith('/tasks')
 
 	useEffect(() => {
 		setMoreOpen(false)
 	}, [location.pathname])
+
+	useEffect(() => {
+		if (!moreOpen) return
+		const menu = moreMenuRef.current!
+		menu.querySelector<HTMLElement>('[role="menuitem"]')?.focus()
+		const dismiss = (event: PointerEvent | FocusEvent) => {
+			if (event.target instanceof Node && !menu.contains(event.target) && !moreTriggerRef.current?.contains(event.target)) setMoreOpen(false)
+		}
+		const navigateMenu = (event: KeyboardEvent) => {
+			if (event.key === 'Escape') {
+				event.preventDefault()
+				setMoreOpen(false)
+				moreTriggerRef.current?.focus()
+				return
+			}
+			if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return
+			event.preventDefault()
+			const links = [...menu.querySelectorAll<HTMLElement>('[role="menuitem"]')]
+			const index = links.indexOf(document.activeElement as HTMLElement)
+			const next = event.key === 'Home' ? 0 : event.key === 'End' ? links.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + links.length) % links.length
+			links[next]?.focus()
+		}
+		document.addEventListener('pointerdown', dismiss)
+		document.addEventListener('focusin', dismiss)
+		menu.addEventListener('keydown', navigateMenu)
+		return () => {
+			document.removeEventListener('pointerdown', dismiss)
+			document.removeEventListener('focusin', dismiss)
+			menu.removeEventListener('keydown', navigateMenu)
+		}
+	}, [moreOpen])
 
 	useEffect(() => {
 		if (accessToken) {
@@ -92,7 +127,8 @@ export default function AppShell() {
 
 	return (
 		<div className='app-frame'>
-			<aside className='command-rail' aria-label='Main navigation'>
+			<a className='skip-link' href='#main-content'>{t('navigation.skipToContent')}</a>
+			<aside className='command-rail' aria-label={t('navigation.main')}>
 				<div className='command-rail__brand'>
 					<DoItLogo />
 				</div>
@@ -106,20 +142,21 @@ export default function AppShell() {
 						</NavLink>
 					))}
 				</nav>
-				<div className='command-rail__progress' aria-label={t('now.progressLabel')} style={{ '--progress': `${completion}%` } as CSSProperties}>
+				<div className='command-rail__progress' role='progressbar' aria-label={t('now.progressLabel')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={completion} style={{ '--progress': `${completion}%` } as CSSProperties}>
 					<div className='command-rail__progress-header'><span>{t('now.progress')}</span><strong>{completion}%</strong></div>
 					<div className='command-rail__progress-track'><span style={{ width: `${completion}%` }} /></div>
 				</div>
 			</aside>
 
-			<header className='app-topbar'>
+			<header className={`app-topbar${showScope ? ' app-topbar--scope' : ''}`}>
 				<div className='app-title-block'>
-					{isZoneDetail ? <Link className='app-context-back' to='/zones' aria-label={t('zones.back')}>‹ <span>{t('zones.back')}</span></Link> : null}
-					<strong>{t(titleKey)}</strong>
+					{isZoneDetail ? <Link className='app-context-back' to='/zones' aria-label={t('zones.back')}><svg viewBox='0 0 24 24' aria-hidden='true'><path d='m14 6-6 6 6 6' /></svg><span>{t('zones.back')}</span></Link> : null}
+					<h1 className='app-page-title'>{t(isTaskWorkspace ? 'taskAlerts.listTitle' : titleKey)}</h1>
 				</div>
 				<div className='app-topbar__actions'>
+					{isTaskWorkspace ? <Link className='tasks-global-settings' to='/profile' aria-label={t('taskAlerts.generalSettings')}><svg viewBox='0 0 24 24' aria-hidden='true'><path d='M4 7h9m4 0h3M4 17h3m4 0h9M13 4v6M7 14v6' /></svg><span>{t('taskAlerts.generalSettings')}</span></Link> : null}
 					{showScope ? (
-						<div className='scope-switch' aria-label={t('now.scopeLabel')}>
+						<div className='scope-switch' role='group' aria-label={t('now.scopeLabel')}>
 							<button type='button' className={nowScope === 'me' ? 'is-active' : undefined} aria-pressed={nowScope === 'me'} onClick={() => changeScope('me')}>
 								{t('now.scopeMe')}
 							</button>
@@ -140,12 +177,12 @@ export default function AppShell() {
 				</div>
 			</header>
 
-			<main className='app-content'>
+			<main className='app-content' id='main-content' tabIndex={-1}>
 				{initialDataLoading ? <div className='app-loading' role='status'>{t('common.loading')}</div> : null}
-				<Outlet />
+				<Suspense fallback={<div className='app-loading' role='status'>{t('common.loading')}</div>}><Outlet /></Suspense>
 			</main>
 
-			<nav className='mobile-dock' aria-label='Main navigation'>
+			<nav className='mobile-dock' aria-label={t('navigation.main')}>
 				{navItems.slice(0, 2).map((item) => (
 					<NavLink key={item.to} to={item.to} className={({ isActive }) => `mobile-dock__item${isActive ? ' mobile-dock__item--active' : ''}`}>
 						<svg aria-hidden='true' viewBox='0 0 24 24'>
@@ -165,11 +202,11 @@ export default function AppShell() {
 					</svg>
 					<span>{t(navItems[4].labelKey)}</span>
 				</NavLink>
-				<button className={`mobile-dock__item mobile-dock__more${moreOpen || moreActive ? ' mobile-dock__item--active' : ''}`} type='button' aria-expanded={moreOpen} aria-haspopup='menu' onClick={() => setMoreOpen((open) => !open)}>
+				<button ref={moreTriggerRef} className={`mobile-dock__item mobile-dock__more${moreOpen || moreActive ? ' mobile-dock__item--active' : ''}`} type='button' aria-expanded={moreOpen} aria-haspopup='menu' aria-controls={moreOpen ? moreMenuId : undefined} onClick={() => setMoreOpen((open) => !open)} onKeyDown={(event) => { if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); setMoreOpen(true) } }}>
 					<svg aria-hidden='true' viewBox='0 0 24 24'><path d='M5 12h.01M12 12h.01M19 12h.01' /></svg>
 					<span>{t('navigation.more')}</span>
 				</button>
-				{moreOpen ? <div className='mobile-dock__more-menu' role='menu'>
+				{moreOpen ? <div className='mobile-dock__more-menu' id={moreMenuId} ref={moreMenuRef} role='menu' aria-label={t('navigation.more')}>
 					{[navItems[2], navItems[3], navItems[5], navItems[6], navItems[7]].map((item) => (
 						<NavLink key={item.to} to={item.to} role='menuitem' className={({ isActive }) => `mobile-dock__more-link${isActive ? ' is-active' : ''}`} onClick={() => setMoreOpen(false)}>
 							<svg aria-hidden='true' viewBox='0 0 24 24'><path d={item.icon} /></svg>

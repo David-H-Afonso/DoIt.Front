@@ -116,6 +116,16 @@ describe('NotificationService', () => {
 	})
 	})
 
+	it('loads task notification settings and updates multiple overrides with a single request', async () => {
+		const settings = { preferences: { recommendedEnabled: true }, tasks: [] }
+		const updates = [{ taskId: 'task-id', settings: { availableFromEnabled: false, recommendedEnabled: false, beforeAvailableUntilEnabled: false, taskExpiredEnabled: false, taskCompletedEnabled: false, beforeAvailableUntilMinutes: null } }]
+		apiRequestMock.mockResolvedValueOnce(settings).mockResolvedValueOnce([])
+		expect(await NotificationService.getTaskSettings('access-token')).toEqual(settings)
+		await NotificationService.updateTaskOverrides('access-token', updates)
+		expect(apiRequestMock).toHaveBeenNthCalledWith(1, '/api/notifications/tasks', { accessToken: 'access-token' })
+		expect(apiRequestMock).toHaveBeenNthCalledWith(2, '/api/notifications/tasks', { method: 'PUT', body: { tasks: updates }, accessToken: 'access-token' })
+	})
+
 	it('marks the whole inbox as read', async () => {
 		apiRequestMock.mockResolvedValueOnce(undefined)
 

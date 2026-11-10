@@ -5,6 +5,8 @@ import { apiRequest } from './httpClient'
 export const TaskService = {
 	list: (accessToken: string) =>
 		apiRequest<TaskItem[]>(environment.apiRoutes.tasks.list, { accessToken }),
+	get: (accessToken: string, id: string) =>
+		apiRequest<TaskItem>(environment.apiRoutes.tasks.byId(id), { accessToken }),
 	create: (accessToken: string, request: CreateTaskRequest) =>
 		apiRequest<TaskItem>(environment.apiRoutes.tasks.create, {
 			method: 'POST',

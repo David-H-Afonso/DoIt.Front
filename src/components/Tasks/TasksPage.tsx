@@ -1,116 +1,201 @@
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useId, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '@/i18n'
 import { useToast } from '@/components/Toasts/useToast'
-import { archiveTask, deleteTask, fetchTasks, restoreTask } from '@/store/features/tasks/tasksSlice'
+import { archiveTask, deleteTask, mutateTaskOccurrence, restoreTask } from '@/store/features/tasks/tasksSlice'
 import { fetchNow } from '@/store/features/now/nowSlice'
 import { openTaskEditor } from '@/store/features/ui/uiSlice'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { OccurrenceService } from '@/services'
 import type { TaskItem } from '@/models/task'
-import { formatInstant, formatScheduleTime } from '@/utils/scheduleTime'
-import { setXp } from '@/store/features/xp/xpSlice'
+import type { TaskNotificationOverride } from '@/models/notifications'
+import { getTaskNotificationState, inheritedTaskNotifications, setAllTaskNotifications } from '@/utils/taskNotifications'
+import { fetchTaskNotificationSettings, saveTaskNotificationOverrides } from '@/store/features/taskNotifications/taskNotificationsSlice'
+import { fetchXp, setXp } from '@/store/features/xp/xpSlice'
+import { canActOnTask, canUndoOccurrence, canUndoOccurrenceSummary, getTaskCompletionControl, type TaskOccurrenceMutation } from '@/utils/taskCompletion'
+import TaskIcon from './TaskIcon'
+import TaskInventoryRow from './TaskInventoryRow'
+import type { TaskMenuAction } from './TaskActionsMenu'
+import './TaskWorkspace.scss'
 
 type StatusFilter = 'active' | 'archived'
 type SortMode = 'alphabetical' | 'createdDesc' | 'createdAsc'
+type NotificationFilter = 'all' | 'on' | 'off'
+const TaskNotificationsDialog = lazy(() => import('./TaskNotificationsDialog'))
 
 export default function TasksPage() {
-	const { t } = useI18n()
+	const { locale, t } = useI18n()
 	const dispatch = useAppDispatch()
 	const [searchParams] = useSearchParams()
 	const { showToast } = useToast()
 	const accessToken = useAppSelector((state) => state.auth.accessToken)
 	const currentUser = useAppSelector((state) => state.auth.user)
 	const tasks = useAppSelector((state) => state.tasks.items)
+	const tasksError = useAppSelector((state) => state.tasks.error)
+	const pendingOccurrences = useAppSelector((state) => state.tasks.pendingOccurrences)
+	const notifications = useAppSelector((state) => state.taskNotifications)
 	const linkedTaskId = searchParams.get('taskId')
-	const zones = useAppSelector((state) => state.zones.items.filter((zone) => !zone.isArchived))
+	const linkedTaskAvailable = tasks.some((task) => task.id === linkedTaskId)
+	const zoneItems = useAppSelector((state) => state.zones.items)
+	const zones = useMemo(() => zoneItems.filter((zone) => !zone.isArchived), [zoneItems])
 	const loading = useAppSelector((state) => state.tasks.loading)
 	const [status, setStatus] = useState<StatusFilter>('active')
 	const [query, setQuery] = useState('')
 	const [zoneId, setZoneId] = useState('')
 	const [recurrence, setRecurrence] = useState('')
 	const [sortMode, setSortMode] = useState<SortMode>('alphabetical')
+	const [notificationFilter, setNotificationFilter] = useState<NotificationFilter>('all')
+	const [filtersOpen, setFiltersOpen] = useState(false)
+	const [selecting, setSelecting] = useState(false)
+	const [selectedIds, setSelectedIds] = useState<string[]>([])
+	const [notificationTaskId, setNotificationTaskId] = useState<string | null>(null)
+	const [clock, setClock] = useState(() => new Date())
+	const filterPanelId = useId()
+	const ready = notifications.loaded && notifications.preferences !== null && !notifications.error
+	const busy = notifications.pendingTaskIds.length > 0
+	const notificationTask = tasks.find((task) => task.id === notificationTaskId)
+	const activeFilterCount = Number(Boolean(zoneId)) + Number(Boolean(recurrence)) + Number(sortMode !== 'alphabetical')
+
 	useEffect(() => {
-		if (linkedTaskId && tasks.some((task) => task.id === linkedTaskId)) {
+		if (accessToken) void dispatch(fetchTaskNotificationSettings())
+	}, [accessToken, dispatch])
+
+	useEffect(() => {
+		const timer = window.setInterval(() => setClock(new Date()), 30_000)
+		return () => window.clearInterval(timer)
+	}, [])
+
+	useEffect(() => {
+		setSelectedIds([])
+	}, [status, notificationFilter, query, zoneId, recurrence])
+	useEffect(() => {
+		if (linkedTaskId && linkedTaskAvailable) {
 			dispatch(openTaskEditor(linkedTaskId))
 		}
-	}, [dispatch, linkedTaskId, tasks])
+	}, [dispatch, linkedTaskId, linkedTaskAvailable])
 
-	const markMissed = async (task: TaskItem) => {
-		if (!accessToken || !task.occurrenceId) return
+	const runOccurrenceAction = async (request: TaskOccurrenceMutation, focusTask = false) => {
+		const returnToControl = focusTask || document.activeElement?.id === `task-complete-${request.taskId}`
 		try {
-			await OccurrenceService.apply(accessToken, task.occurrenceId, 'missed')
-			dispatch(fetchTasks())
-			dispatch(fetchNow())
-			showToast({ type: 'success', title: t('toasts.missed') })
-		} catch {
-			showToast({ type: 'error', title: t('toasts.error') })
+			const { response, task } = await dispatch(mutateTaskOccurrence(request)).unwrap()
+			if (response.userXp && request.action !== 'undo') dispatch(setXp(response.userXp))
+			else void dispatch(fetchXp())
+			void dispatch(fetchNow())
+			const completed = request.action === 'complete' || request.action === 'early'
+			const partial = completed && response.status === 'Pending'
+			const actor = request.target === 'current' ? task?.occurrenceCompletedByUserId : task?.upcomingOccurrence?.completedByUserId
+			const canUndo = request.action !== 'undo' && (actor === currentUser?.id || response.xpEarned > 0)
+			const description = [completed && task?.isArchived ? t('taskActions.archivedOnDone') : '', !task ? t('taskActions.refreshWarning') : ''].filter(Boolean).join(' ')
+			showToast({
+				groupKey: 'task-occurrence',
+				type: !task ? 'warning' : partial ? 'info' : 'success',
+				title: t(partial ? 'taskActions.partDone' : request.action === 'undo' ? 'toasts.undone' : request.action === 'missed' ? 'toasts.missed' : request.action === 'early' ? 'toasts.doneEarly' : 'toasts.done'),
+				description: description || undefined,
+				durationMs: 8000,
+				actionLabel: canUndo ? t('common.undo') : undefined,
+				onAction: canUndo ? () => { void runOccurrenceAction({ ...request, action: 'undo' }, true) } : undefined,
+			})
+		} catch (error) {
+			if (typeof error === 'object' && error && 'name' in error && error.name === 'ConditionError') return
+			const code = typeof error === 'object' && error && 'code' in error ? error.code : null
+			showToast({ groupKey: 'task-occurrence', type: 'error', title: t(code === 'occurrence_snoozed' ? 'taskActions.snoozedError' : code === 'occurrence_unavailable' ? 'taskActions.unavailableError' : 'taskActions.saveError') })
+		} finally {
+			if (returnToControl) window.requestAnimationFrame(() => {
+				const active = document.activeElement
+				if (active && active !== document.body && active.id !== `task-complete-${request.taskId}` && !active.closest('.toast')) return
+				const control = document.getElementById(`task-complete-${request.taskId}`) as HTMLButtonElement | null
+				const target = control && !control.disabled ? control : document.querySelector<HTMLElement>('.tasks-status-tabs button[aria-pressed="true"]')
+				target?.focus({ preventScroll: true })
+				if (control && target === control && window.innerWidth < 960 && control.getBoundingClientRect().bottom > window.innerHeight - 220) control.scrollIntoView({ block: 'center', behavior: 'auto' })
+			})
 		}
 	}
 
-	const completeEarly = async (task: TaskItem) => {
-		const occurrence = task.upcomingOccurrence
-		if (!accessToken || !occurrence || occurrence.status !== 'Pending') return
-		try {
-			const response = await OccurrenceService.completeEarly(accessToken, occurrence.id)
-			if (response.userXp) {
-				dispatch(setXp(response.userXp))
-			}
-			dispatch(fetchTasks())
-			dispatch(fetchNow())
-			showToast({ type: 'success', title: t('toasts.doneEarly') })
-		} catch {
-			showToast({ type: 'error', title: t('toasts.error') })
-		}
-	}
-
-	const undoUpcoming = async (task: TaskItem) => {
-		const occurrence = task.upcomingOccurrence
-		if (!accessToken || !occurrence || !canUndoOccurrenceSummary(task, currentUser?.id, currentUser?.role)) return
-		try {
-			await OccurrenceService.undo(accessToken, occurrence.id)
-			dispatch(fetchTasks())
-			dispatch(fetchNow())
-			showToast({ type: 'success', title: t('toasts.undone') })
-		} catch {
-			showToast({ type: 'error', title: t('toasts.error') })
-		}
-	}
-
-	const undoOccurrence = async (task: TaskItem) => {
-		if (!accessToken || !task.occurrenceId) return
-		try {
-			await OccurrenceService.undo(accessToken, task.occurrenceId)
-			dispatch(fetchTasks())
-			dispatch(fetchNow())
-			showToast({ type: 'success', title: t('toasts.undone') })
-		} catch {
-			showToast({ type: 'error', title: t('toasts.error') })
-		}
-	}
-
-	const visibleTasks = useMemo(() => tasks
+	const notificationStates = useMemo(() => new Map(tasks.flatMap((task) => ready && notifications.preferences
+		? [[task.id, getTaskNotificationState(task, notifications.preferences, notifications.overrides[task.id] ?? inheritedTaskNotifications(task.id), currentUser?.id)] as const]
+		: [])), [tasks, ready, notifications.preferences, notifications.overrides, currentUser?.id])
+	const matchingTasks = useMemo(() => tasks
 		.filter((task) => status === 'archived' ? task.isArchived : !task.isArchived)
 		.filter((task) => !zoneId || task.zoneId === zoneId)
 		.filter((task) => !recurrence || task.schedule?.recurrenceType === recurrence)
 		.filter((task) => task.title.toLocaleLowerCase().includes(query.toLocaleLowerCase().trim()))
 		.sort((left, right) => sortMode === 'alphabetical'
-			? left.title.localeCompare(right.title, 'es', { sensitivity: 'base' })
+			? left.title.localeCompare(right.title, locale, { sensitivity: 'base' })
 			: sortMode === 'createdDesc'
 				? right.createdAt.localeCompare(left.createdAt)
-			: left.createdAt.localeCompare(right.createdAt)), [query, recurrence, sortMode, status, tasks, zoneId])
+			: left.createdAt.localeCompare(right.createdAt)), [locale, query, recurrence, sortMode, status, tasks, zoneId])
+	const visibleTasks = matchingTasks.filter((task) => notificationFilter === 'all' || ready && (notificationFilter === 'on' ? notificationStates.get(task.id)?.enabled : !notificationStates.get(task.id)?.enabled))
+	const withNotifications = ready ? matchingTasks.filter((task) => notificationStates.get(task.id)?.enabled).length : null
+	const notificationCounts = { all: matchingTasks.length, on: withNotifications ?? '—', off: withNotifications === null ? '—' : matchingTasks.length - withNotifications }
+	const selectableTasks = visibleTasks.filter((task) => task.createdByUserId === currentUser?.id && !task.isArchived)
+	// Only the visible, owned selection may be changed, even if a refresh or filter
+	// removes an item while the user is selecting tasks.
+	const selectedTasks = selectableTasks.filter((task) => selectedIds.includes(task.id))
+	const allSelected = selectableTasks.length > 0 && selectedTasks.length === Math.min(500, selectableTasks.length)
+
+	const persistOverrides = async (values: TaskNotificationOverride[], title: string) => {
+		const previous = values.map((value) => notifications.overrides[value.taskId] ?? inheritedTaskNotifications(value.taskId))
+		try {
+			await dispatch(saveTaskNotificationOverrides(values)).unwrap()
+			showToast({ type: 'success', title, durationMs: 8000, actionLabel: t('common.undo'), onAction: () => {
+				void dispatch(saveTaskNotificationOverrides(previous)).unwrap().then(() => {
+					showToast({ type: 'success', title: t('taskAlerts.restored') })
+				}).catch(() => showToast({ type: 'error', title: t('taskAlerts.saveError') }))
+			} })
+			return true
+		} catch {
+			showToast({ type: 'error', title: t('taskAlerts.saveError') })
+			return false
+		}
+	}
+
+	const toggleTaskNotifications = (task: TaskItem) => {
+		const state = notificationStates.get(task.id)
+		if (!ready || busy || !state || task.createdByUserId !== currentUser?.id) return
+		const value = notifications.overrides[task.id] ?? inheritedTaskNotifications(task.id)
+		void persistOverrides([setAllTaskNotifications(value, !state.enabled)], t(state.enabled ? 'taskAlerts.mutedToast' : 'taskAlerts.enabledToast'))
+	}
+
+	const muteSelected = async () => {
+		if (!ready || busy || selectedTasks.length === 0) return
+		const values = selectedTasks.map((task) => setAllTaskNotifications(notifications.overrides[task.id] ?? inheritedTaskNotifications(task.id), false))
+		if (await persistOverrides(values, t(values.length === 1 ? 'taskAlerts.bulkMutedOne' : 'taskAlerts.bulkMuted').replace('{count}', String(values.length)))) {
+			setSelectedIds([])
+			setSelecting(false)
+		}
+	}
+
+	const clearFilters = () => { setQuery(''); setZoneId(''); setRecurrence(''); setNotificationFilter('all'); setSortMode('alphabetical') }
+
+	const getActions = (task: TaskItem): TaskMenuAction[] => {
+		const actions: TaskMenuAction[] = []
+		if (canEditTask(task, currentUser?.id, currentUser?.role)) actions.push({ label: t('tasks.edit'), icon: 'edit', onSelect: () => dispatch(openTaskEditor(task.id)) })
+		if (canActOnTask(task, currentUser?.id, currentUser?.role) && task.upcomingOccurrence?.status === 'Pending') actions.push({ label: t('tasks.completeEarly'), icon: 'check', onSelect: () => void runOccurrenceAction({ taskId: task.id, occurrenceId: task.upcomingOccurrence!.id, target: 'upcoming', action: 'early' }) })
+		if (canUndoOccurrenceSummary(task, currentUser?.id, currentUser?.role) && task.upcomingOccurrence?.status === 'Done') actions.push({ label: t('taskAlerts.undoUpcoming'), icon: 'undo', onSelect: () => void runOccurrenceAction({ taskId: task.id, occurrenceId: task.upcomingOccurrence!.id, target: 'upcoming', action: 'undo' }) })
+		if (canActOnTask(task, currentUser?.id, currentUser?.role) && task.occurrenceId && task.occurrenceStatus === 'Pending' && task.schedule?.recurrenceType !== 'TimesPerWeek') actions.push({ label: t('now.miss'), icon: 'close', onSelect: () => void runOccurrenceAction({ taskId: task.id, occurrenceId: task.occurrenceId!, target: 'current', action: 'missed' }) })
+		if (canUndoOccurrence(task, currentUser?.id, currentUser?.role) && task.occurrenceId && task.occurrenceStatus !== 'Pending') actions.push({ label: t('common.undo'), icon: 'undo', onSelect: () => void runOccurrenceAction({ taskId: task.id, occurrenceId: task.occurrenceId!, target: 'current', action: 'undo' }) })
+		if (task.createdByUserId === currentUser?.id) {
+			actions.push({ label: t(task.isArchived ? 'tasks.restore' : 'tasks.archive'), icon: task.isArchived ? 'undo' : 'archive', onSelect: () => { void dispatch(task.isArchived ? restoreTask(task.id) : archiveTask(task.id)).unwrap().catch(() => showToast({ type: 'error', title: t('toasts.error') })) } })
+			actions.push({ label: t('tasks.delete'), icon: 'trash', danger: true, onSelect: () => { if (window.confirm(t('tasks.deleteConfirm'))) void dispatch(deleteTask(task.id)).unwrap().catch(() => showToast({ type: 'error', title: t('toasts.error') })) } })
+		}
+		return actions
+	}
 
 	return (
 		<div className='page-grid tasks-page'>
 			<section className='tasks-toolbar' aria-label={t('tasks.title')}>
-				<div className='tasks-status-tabs' role='tablist'>
-					<button type='button' className={status === 'active' ? 'is-active' : undefined} onClick={() => setStatus('active')}>{t('tasks.active')}</button>
-					<button type='button' className={status === 'archived' ? 'is-active' : undefined} onClick={() => setStatus('archived')}>{t('tasks.archived')}</button>
+				<div className='tasks-toolbar__navigation'><div className='tasks-status-tabs' role='group' aria-label={t('taskAlerts.taskStatus')}>
+					{(['active', 'archived'] as const).map((value) => <button key={value} type='button' aria-pressed={status === value} className={status === value ? 'is-active' : undefined} onClick={() => { setStatus(value); setSelecting(false) }}>{t(`tasks.${value}`)}<span>{tasks.filter((task) => value === 'archived' ? task.isArchived : !task.isArchived).length}</span></button>)}
 				</div>
-				<label className='tasks-search'>
-					<span>{t('tasks.search')}</span>
-					<input aria-label={t('tasks.search')} value={query} onChange={(event) => setQuery(event.target.value)} />
-				</label>
+				<div className='tasks-notification-filters' role='group' aria-label={t('taskAlerts.filterLabel')}>
+					{(['all', 'on', 'off'] as const).map((value) => <button type='button' key={value} aria-label={`${t(`taskAlerts.${value}`)} ${notificationCounts[value]}`} aria-pressed={notificationFilter === value} disabled={value !== 'all' && !ready} className={notificationFilter === value ? 'is-active' : undefined} onClick={() => setNotificationFilter(value)}><TaskIcon name={value === 'all' ? 'list' : value === 'on' ? 'bell' : 'bell-off'} /><span>{t(`taskAlerts.${value}`)}</span><b>{notificationCounts[value]}</b></button>)}
+				</div>
+				</div>
+				<div className='tasks-toolbar__controls'>
+					<label className='tasks-search'><TaskIcon name='search' /><input type='search' aria-label={t('tasks.search')} placeholder={t('tasks.search')} value={query} onChange={(event) => setQuery(event.target.value)} /></label>
+					<div className='tasks-toolbar__tools'><button className='task-text-button tasks-filter-toggle' type='button' aria-expanded={filtersOpen} aria-controls={filterPanelId} onClick={() => setFiltersOpen(!filtersOpen)}><TaskIcon name='filters' />{t('taskAlerts.filters')}{activeFilterCount ? <b>{activeFilterCount}</b> : null}</button>
+					{status === 'active' ? <button className={`task-text-button tasks-select-button${selecting ? ' is-active' : ''}`} type='button' aria-pressed={selecting} disabled={!ready || busy || selectableTasks.length === 0} onClick={() => { setSelecting(!selecting); setSelectedIds([]) }}><TaskIcon name={selecting ? 'close' : 'check'} />{t(selecting ? 'common.cancel' : 'taskAlerts.select')}</button> : null}</div>
+				</div>
+				<div id={filterPanelId} className={`tasks-extra-filters${filtersOpen ? ' is-open' : ''}`}>
 				<select aria-label={t('tasks.allZones')} value={zoneId} onChange={(event) => setZoneId(event.target.value)}>
 					<option value=''>{t('tasks.allZones')}</option>
 					{zones.map((zone) => <option value={zone.id} key={zone.id}>{zone.name}</option>)}
@@ -133,103 +218,41 @@ export default function TasksPage() {
 					<option value='createdDesc'>{t('tasks.sortNewest')}</option>
 					<option value='createdAsc'>{t('tasks.sortOldest')}</option>
 				</select>
+				</div>
 			</section>
 
+			{notifications.error ? <div className='tasks-load-error' role='alert'><span>{t('taskAlerts.loadError')}</span><button className='task-text-button' type='button' disabled={notifications.loading} onClick={() => void dispatch(fetchTaskNotificationSettings())}>{t('taskAlerts.retry')}</button></div> : null}
+			{tasksError ? <p className='form-error' role='alert'>{t('taskAlerts.tasksLoadError')}</p> : null}
+			{selecting ? <section className='tasks-bulk-bar' aria-label={t('taskAlerts.selection')}>
+				<div><label className='task-select-all'><input type='checkbox' checked={allSelected} ref={(element) => { if (element) element.indeterminate = selectedTasks.length > 0 && !allSelected }} disabled={busy} onChange={() => setSelectedIds(allSelected ? [] : selectableTasks.slice(0, 500).map((task) => task.id))} /><span>{t('taskAlerts.selectAll')}</span></label><strong aria-live='polite'>{t(selectedTasks.length === 1 ? 'taskAlerts.selectedOne' : 'taskAlerts.selectedCount').replace('{count}', String(selectedTasks.length))}</strong></div>
+				<button className='task-primary-button' type='button' disabled={selectedTasks.length === 0 || busy} onClick={() => void muteSelected()}><TaskIcon name='bell-off' />{t(busy ? 'common.loading' : 'taskAlerts.muteSelected')}</button>
+				<p>{t(selectedTasks.some((task) => task.scope === 'House') ? 'taskAlerts.sharedWarning' : 'taskAlerts.selectionHelp')}{selectableTasks.length > 500 ? ` ${t('taskAlerts.selectionLimit')}` : ''}</p>
+			</section> : null}
 			{loading ? <p className='empty-state'>{t('common.loading')}</p> : null}
-			{!loading && visibleTasks.length === 0 ? <p className='empty-state'>{t('tasks.empty')}</p> : null}
-			{(['Overdue', 'Manual', 'Recurring'] as const).map((group) => {
+			{!loading && visibleTasks.length === 0 ? <div className='tasks-empty-state'><TaskIcon name='search' /><h2>{t('taskAlerts.noResults')}</h2><p>{t('tasks.empty')}</p>{query || zoneId || recurrence || notificationFilter !== 'all' ? <button className='task-text-button' type='button' onClick={clearFilters}>{t('taskAlerts.clearFilters')}</button> : null}</div> : null}
+			{visibleTasks.length > 0 ? <div className='tasks-worklist'>{(['Overdue', 'Manual', 'Recurring'] as const).map((group) => {
 				const groupTasks = visibleTasks.filter((task) => {
 					const isOverdue = task.occurrenceStatus === 'Pending' && task.isOverdue === true
 					return group === 'Overdue' ? isOverdue : !isOverdue && (group === 'Manual' ? task.schedule?.recurrenceType === 'Manual' : task.schedule?.recurrenceType !== 'Manual')
 				})
 				if (groupTasks.length === 0) return null
-				return <section className='task-inventory-group' key={group} aria-label={group === 'Overdue' ? t('tasks.overdue') : group === 'Manual' ? t('tasks.oneOff') : t('tasks.recurring')}>
-					<header><h2>{group === 'Overdue' ? t('tasks.overdue') : group === 'Manual' ? t('tasks.oneOff') : t('tasks.recurring')}</h2><span>{groupTasks.length}</span></header>
+				return <section className='task-inventory-group' key={group} aria-label={group === 'Overdue' ? t('tasks.overdue') : group === 'Manual' ? t('tasks.oneOffGroup') : t('tasks.recurring')}>
+					<header><h2>{group === 'Overdue' ? t('tasks.overdue') : group === 'Manual' ? t('tasks.oneOffGroup') : t('tasks.recurring')}</h2><span>{groupTasks.length}</span></header>
 					<div className='task-inventory'>
-						{groupTasks.map((task) => <TaskInventoryRow key={task.id} task={task} canEdit={canEditTask(task, currentUser?.id, currentUser?.role)} canAct={canActOnTask(task, currentUser?.id, currentUser?.role)} canUndo={canUndoOccurrence(task, currentUser?.id, currentUser?.role)} canUndoUpcoming={canUndoOccurrenceSummary(task, currentUser?.id, currentUser?.role)} onEdit={() => dispatch(openTaskEditor(task.id))} onMiss={() => void markMissed(task)} onUndo={() => void undoOccurrence(task)} onCompleteEarly={() => void completeEarly(task)} onUndoUpcoming={() => void undoUpcoming(task)} onArchive={() => dispatch(archiveTask(task.id))} onRestore={() => dispatch(restoreTask(task.id))} onDelete={() => {
-							if (window.confirm(t('tasks.deleteConfirm'))) dispatch(deleteTask(task.id))
-						}} />)}
+						{groupTasks.map((task) => {
+							const state = notificationStates.get(task.id)
+							const completion = getTaskCompletionControl(task, currentUser?.id, currentUser?.role, clock)
+							return <TaskInventoryRow key={task.id} task={task} notificationState={state} completion={completion} completionBusy={Boolean(pendingOccurrences?.[task.id])} onComplete={() => { if (completion.action && completion.target && completion.occurrenceId) void runOccurrenceAction({ taskId: task.id, occurrenceId: completion.occurrenceId, target: completion.target, action: completion.action }) }} selecting={selecting} selected={selectedTasks.some((selected) => selected.id === task.id)} selectable={task.createdByUserId === currentUser?.id && (selectedIds.length < 500 || selectedIds.includes(task.id))} busy={busy} canInspect={Boolean(notifications.overrides[task.id]) || task.createdByUserId === currentUser?.id} canToggle={Boolean(state && task.createdByUserId === currentUser?.id && !task.isArchived && state.isRecipient && state.applicableKeys.length > 0)} actions={getActions(task)} onSelect={() => setSelectedIds((ids) => ids.includes(task.id) ? ids.filter((id) => id !== task.id) : ids.length < 500 ? [...ids, task.id] : ids)} onConfigure={() => setNotificationTaskId(task.id)} onToggle={() => toggleTaskNotifications(task)} />
+						})}
 					</div>
 				</section>
-			})}
+			})}</div> : null}
+			<details className='tasks-notification-help'><summary><TaskIcon name='bell' /><span>{t('taskAlerts.aboutAlerts')}</span><TaskIcon name='chevron' /></summary><div><p>{t('taskAlerts.listHelp')}</p><p>{t('taskAlerts.sharedWarning')}</p></div></details>
+			{notificationTask && ready && notifications.preferences ? <Suspense fallback={null}><TaskNotificationsDialog key={notificationTask.id} task={notificationTask} preferences={notifications.preferences} value={notifications.overrides[notificationTask.id] ?? inheritedTaskNotifications(notificationTask.id)} canManage={notificationTask.createdByUserId === currentUser?.id && !notificationTask.isArchived} onSave={(value) => persistOverrides([value], t('taskAlerts.savedToast'))} onClose={() => setNotificationTaskId(null)} /></Suspense> : null}
 		</div>
 	)
 }
 
-function TaskInventoryRow({ task, canEdit, canAct, canUndo, canUndoUpcoming, onEdit, onMiss, onUndo, onCompleteEarly, onUndoUpcoming, onArchive, onRestore, onDelete }: { task: TaskItem; canEdit: boolean; canAct: boolean; canUndo: boolean; canUndoUpcoming: boolean; onEdit: () => void; onMiss: () => void; onUndo: () => void; onCompleteEarly: () => void; onUndoUpcoming: () => void; onArchive: () => void; onRestore: () => void; onDelete: () => void }) {
-	const { t, formatDate } = useI18n()
-	const schedule = task.schedule
-	const recurrence = schedule ? getRecurrenceLabel(schedule.recurrenceType, schedule, t) : t('tasks.oneOff')
-	const time = schedule?.recommendedTime ? ` · ${formatScheduleTime(schedule.recommendedTime, schedule.timeZoneId, schedule.startDate)}` : ''
-
-	return (
-		<article className='task-inventory__row'>
-			<div className='task-inventory__main'>
-				<strong>{task.title}</strong>
-				<div className='task-inventory__meta'>
-					<span>{recurrence}{time}</span>
-					<span>{task.zoneName ?? t('quickCreate.noZone')}</span>
-					{task.upcomingOccurrence ? <span className={task.upcomingOccurrence.status === 'Done' ? 'task-inventory__early' : 'task-inventory__upcoming'}>
-						{task.upcomingOccurrence.status === 'Done' ? t('tasks.completedEarly') : `${t('tasks.nextOccurrence')} ${formatDate(new Date(`${task.upcomingOccurrence.date}T00:00:00`))}`}
-					</span> : null}
-					{task.occurrenceStatus === 'Pending' && task.isOverdue
-						? <span className='task-inventory__overdue'>{t('tasks.notDone')} {formatDate(new Date(`${task.occurrenceDate}T00:00:00`))}</span>
-						: null}
-					{task.isArchived ? <span>{t('tasks.archivedLabel')}</span> : null}
-				</div>
-				<div className='task-inventory__history'>
-					<span>{t('tasks.created')} {formatDate(new Date(task.createdAt))}</span>
-					{task.occurrenceCompletedAt ? <span>{t('tasks.completed')} {formatInstant(task.occurrenceCompletedAt, task.schedule?.timeZoneId)}</span> : null}
-				</div>
-			</div>
-			<div className='task-inventory__actions'>
-				{canEdit ? <button className='secondary-action task-action--compact' type='button' onClick={onEdit}>{t('tasks.edit')}</button> : null}
-				{canAct && task.upcomingOccurrence?.status === 'Pending' ? <button className='secondary-action task-action--compact' type='button' onClick={onCompleteEarly}>{t('tasks.completeEarly')}</button> : null}
-				{canUndoUpcoming && task.upcomingOccurrence?.status === 'Done' ? <button className='secondary-action task-action--compact' type='button' onClick={onUndoUpcoming}>{t('common.undo')}</button> : null}
-				{canAct && task.occurrenceId && task.occurrenceStatus === 'Pending' && task.schedule?.recurrenceType !== 'TimesPerWeek' ? <button className='secondary-action task-action--compact' type='button' onClick={onMiss}>{t('now.miss')}</button> : null}
-				{canUndo && task.occurrenceId && task.occurrenceStatus && task.occurrenceStatus !== 'Pending' ? <button className='secondary-action task-action--compact' type='button' onClick={onUndo}>{t('common.undo')}</button> : null}
-				{canEdit ? (task.isArchived ? <button className='secondary-action task-action--compact' type='button' onClick={onRestore}>{t('tasks.restore')}</button> : <button className='link-action task-action--compact' type='button' onClick={onArchive}>{t('tasks.archive')}</button>) : null}
-				{canEdit ? <button className='danger-action task-action--compact' type='button' onClick={onDelete}>{t('tasks.delete')}</button> : null}
-			</div>
-		</article>
-	)
-}
-
-function canActOnTask(task: TaskItem, userId?: string, role?: string) {
-	if (!userId) return false
-	if (task.scope === 'Personal') return task.createdByUserId === userId
-	return role === 'Admin' || task.assignmentMode === 'Anyone' || task.assigneeIds.includes(userId)
-}
-
 function canEditTask(task: TaskItem, userId?: string, role?: string) {
 	return task.createdByUserId === userId || role === 'Admin' && task.scope === 'House'
-}
-
-function canUndoOccurrence(task: TaskItem, userId?: string, role?: string) {
-	if (!userId || !task.occurrenceCompletedByUserId) return false
-	return task.occurrenceCompletedByUserId === userId || role === 'Admin' && task.scope === 'House'
-}
-
-function canUndoOccurrenceSummary(task: TaskItem, userId?: string, role?: string) {
-	const occurrence = task.upcomingOccurrence
-	if (!occurrence) return false
-	if (!userId || !occurrence.completedByUserId) return false
-	return occurrence.completedByUserId === userId || role === 'Admin' && task.scope === 'House'
-}
-
-function getRecurrenceLabel(type: string, schedule: NonNullable<TaskItem['schedule']>, t: (key: string) => string) {
-	if (type === 'Daily') return t('tasks.daily')
-	if (type === 'Weekday') return replace(t('tasks.weekday'), t(`weekdays.${schedule.weekday ?? 0}`).toLocaleLowerCase())
-	if (type === 'TimesPerWeek') return replace(t('tasks.timesPerWeek'), String(schedule.timesPerWeek ?? 0))
-	if (type === 'EveryNDays') return replace(t('tasks.everyNDays'), String(schedule.everyNDays ?? 0))
-	if (type === 'EveryNWeeks') return replace(t('quickCreate.everyNWeeks'), String(schedule.interval ?? 0))
-	if (type === 'Monthly') return t('quickCreate.monthlyDay')
-	if (type === 'EveryNMonths') return replace(t('quickCreate.everyNMonths'), String(schedule.interval ?? 0))
-	if (type === 'EveryNYears') return replace(t('quickCreate.everyNYears'), String(schedule.interval ?? 0))
-	if (type === 'MonthlyOrdinalWeekday') return `${t(`quickCreate.ordinal.${schedule.weekOfMonth ?? 1}`)} ${t(`weekdays.${schedule.weekday ?? 0}`)}`
-	return t('tasks.oneOff')
-}
-
-function replace(template: string, value: string) {
-	return template.replace('{day}', value).replace('{count}', value).replace('X', value)
 }

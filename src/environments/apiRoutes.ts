@@ -63,6 +63,7 @@ export const apiRoutes = {
 		config: '/api/notifications/config',
 		subscription: '/api/notifications/subscription',
 		preferences: '/api/notifications/preferences',
+		tasks: '/api/notifications/tasks',
 		task: (id: string) => `/api/notifications/tasks/${id}`,
 		inbox: '/api/notifications/inbox',
 		inboxItem: (id: string) => `/api/notifications/inbox/${id}`,

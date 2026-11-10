@@ -48,6 +48,16 @@ export type TaskNotificationOverride = {
 
 export type UpdateTaskNotificationOverrideRequest = Omit<TaskNotificationOverride, 'taskId'>
 
+export type TaskNotificationSettings = {
+	preferences: NotificationPreferences
+	tasks: TaskNotificationOverride[]
+}
+
+export type TaskNotificationUpdate = {
+	taskId: string
+	settings: UpdateTaskNotificationOverrideRequest
+}
+
 export type NotificationInboxItem = {
 	id: string
 	sourceType: string

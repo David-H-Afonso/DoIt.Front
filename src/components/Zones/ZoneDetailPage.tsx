@@ -32,7 +32,7 @@ export default function ZoneDetailPage() {
 			<section className='summary-card now-summary zone-detail-summary'>
 				<div>
 					<span>{t('zones.mode')}</span>
-					<h1>{zone.zoneName}</h1>
+					<h2>{zone.zoneName}</h2>
 				</div>
 				<small>{zone.progress.done}/{zone.progress.total} {t('now.doneLabel')}</small>
 			</section>

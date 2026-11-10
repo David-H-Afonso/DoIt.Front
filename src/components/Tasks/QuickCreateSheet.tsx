@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type FormEvent } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
 import { translate, useI18n } from '@/i18n'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { closeQuickCreate } from '@/store/features/ui/uiSlice'
@@ -8,11 +8,13 @@ import { fetchNow } from '@/store/features/now/nowSlice'
 import { fetchActiveUsers } from '@/store/features/users/usersSlice'
 import { createProposal } from '@/store/features/proposals/proposalsSlice'
 import { useToast } from '@/components/Toasts/useToast'
-import type { TaskNotificationOverride } from '@/models/notifications'
+import type { NotificationPreferences, TaskNotificationOverride } from '@/models/notifications'
 import { NotificationService } from '@/services'
 import type { CreateTaskRequest } from '@/models/task'
-
-type TaskNotificationBooleanKey = 'availableFromEnabled' | 'recommendedEnabled' | 'beforeAvailableUntilEnabled' | 'taskExpiredEnabled' | 'taskCompletedEnabled'
+import { fetchTaskNotificationSettings, setTaskNotificationOverride as setTaskNotificationOverrideInStore } from '@/store/features/taskNotifications/taskNotificationsSlice'
+import { hasTaskNotificationOverride, inheritedTaskNotifications } from '@/utils/taskNotifications'
+import TaskNotificationSettings from './TaskNotificationSettings'
+import { useModalFocus } from '@/hooks/useModalFocus'
 
 export default function QuickCreateSheet() {
 	const { locale, t } = useI18n()
@@ -20,8 +22,12 @@ export default function QuickCreateSheet() {
 	const { showToast } = useToast()
 	const titleId = useId()
 	const descriptionId = useId()
-	const zones = useAppSelector((state) => state.zones.items.filter((zone) => !zone.isArchived))
-	const users = useAppSelector((state) => state.users.items.filter((user) => user.isActive))
+	const panelRef = useRef<HTMLElement>(null)
+	useModalFocus(panelRef, () => { dispatch(closeQuickCreate()) }, 'input[name="title"]')
+	const zoneItems = useAppSelector((state) => state.zones.items)
+	const userItems = useAppSelector((state) => state.users.items)
+	const zones = useMemo(() => zoneItems.filter((zone) => !zone.isArchived), [zoneItems])
+	const users = useMemo(() => userItems.filter((user) => user.isActive), [userItems])
 	const currentUser = useAppSelector((state) => state.auth.user)
 	const editingTaskId = useAppSelector((state) => state.ui.editingTaskId)
 	const quickCreateZoneId = useAppSelector((state) => state.ui.quickCreateZoneId)
@@ -54,6 +60,7 @@ export default function QuickCreateSheet() {
 	const [zoneName, setZoneName] = useState('')
 	const [quickZoneOpen, setQuickZoneOpen] = useState(false)
 	const [taskNotificationOverride, setTaskNotificationOverride] = useState<TaskNotificationOverride | null>(null)
+	const [taskNotificationPreferences, setTaskNotificationPreferences] = useState<NotificationPreferences | null>(null)
 	const [taskNotificationLoading, setTaskNotificationLoading] = useState(false)
 	const [taskNotificationError, setTaskNotificationError] = useState('')
 	const isEditing = Boolean(editingTask)
@@ -123,8 +130,9 @@ export default function QuickCreateSheet() {
 
 	useEffect(() => {
 		let mounted = true
-		if (!editingTask || !accessToken) {
+		if (!editingTask || !accessToken || editingTask.createdByUserId !== currentUser?.id) {
 			setTaskNotificationOverride(null)
+			setTaskNotificationPreferences(null)
 			setTaskNotificationLoading(false)
 			setTaskNotificationError('')
 			return () => { mounted = false }
@@ -132,9 +140,14 @@ export default function QuickCreateSheet() {
 
 		setTaskNotificationLoading(true)
 		setTaskNotificationError('')
-		void NotificationService.getTaskOverride(accessToken, editingTask.id)
-			.then((override) => {
-				if (mounted) setTaskNotificationOverride(override)
+		setTaskNotificationOverride(null)
+		setTaskNotificationPreferences(null)
+		void Promise.all([NotificationService.getTaskOverride(accessToken, editingTask.id), NotificationService.getPreferences(accessToken)])
+			.then(([override, preferences]) => {
+				if (mounted) {
+					setTaskNotificationOverride(override)
+					setTaskNotificationPreferences(preferences)
+				}
 			})
 			.catch(() => {
 				if (mounted) setTaskNotificationError(translate(locale, 'notifications.taskSettingsError'))
@@ -144,22 +157,7 @@ export default function QuickCreateSheet() {
 			})
 
 		return () => { mounted = false }
-	}, [accessToken, editingTask?.id, locale])
-
-	const updateTaskNotificationValue = (key: TaskNotificationBooleanKey, value: boolean | null) => {
-		setTaskNotificationOverride((current) => current ? { ...current, [key]: value } : current)
-	}
-
-	useEffect(() => {
-		const handleKeyDown = (event: KeyboardEvent) => {
-			if (event.key === 'Escape') {
-				dispatch(closeQuickCreate())
-			}
-		}
-
-		window.addEventListener('keydown', handleKeyDown)
-		return () => window.removeEventListener('keydown', handleKeyDown)
-	}, [dispatch])
+	}, [accessToken, currentUser?.id, editingTask?.id, locale])
 
 	const submitTask = async (event: FormEvent) => {
 		event.preventDefault()
@@ -214,14 +212,8 @@ export default function QuickCreateSheet() {
 			}
 			if (accessToken && taskNotificationOverride) {
 				try {
-					const hasOverride = taskNotificationOverride.availableFromEnabled !== null
-						|| taskNotificationOverride.recommendedEnabled !== null
-						|| taskNotificationOverride.beforeAvailableUntilEnabled !== null
-						|| taskNotificationOverride.taskExpiredEnabled !== null
-						|| taskNotificationOverride.taskCompletedEnabled !== null
-						|| taskNotificationOverride.beforeAvailableUntilMinutes !== null
-					if (hasOverride) {
-						await NotificationService.updateTaskOverride(accessToken, editingTask.id, {
+					if (hasTaskNotificationOverride(taskNotificationOverride)) {
+						const saved = await NotificationService.updateTaskOverride(accessToken, editingTask.id, {
 							availableFromEnabled: taskNotificationOverride.availableFromEnabled,
 							recommendedEnabled: taskNotificationOverride.recommendedEnabled,
 							beforeAvailableUntilEnabled: taskNotificationOverride.beforeAvailableUntilEnabled,
@@ -229,9 +221,12 @@ export default function QuickCreateSheet() {
 							taskCompletedEnabled: taskNotificationOverride.taskCompletedEnabled,
 							beforeAvailableUntilMinutes: taskNotificationOverride.beforeAvailableUntilMinutes,
 						})
+						dispatch(setTaskNotificationOverrideInStore(saved))
 					} else {
 						await NotificationService.deleteTaskOverride(accessToken, editingTask.id)
+						dispatch(setTaskNotificationOverrideInStore(inheritedTaskNotifications(editingTask.id)))
 					}
+					void dispatch(fetchTaskNotificationSettings())
 				} catch {
 					showToast({ type: 'warning', title: t('notifications.taskSettingsSaveError') })
 				}
@@ -276,7 +271,7 @@ export default function QuickCreateSheet() {
 				dispatch(closeQuickCreate())
 			}
 		}}>
-			<section className='bottom-sheet composer-panel' role='dialog' aria-modal='true' aria-labelledby={titleId} aria-describedby={descriptionId}>
+			<section className='bottom-sheet composer-panel' ref={panelRef} tabIndex={-1} role='dialog' aria-modal='true' aria-labelledby={titleId} aria-describedby={descriptionId}>
 				<header className='composer-header'>
 					<div>
 						<p id={descriptionId}>{isEditing ? t('quickCreate.editKicker') : t('quickCreate.createKicker')}</p>
@@ -288,9 +283,9 @@ export default function QuickCreateSheet() {
 				</header>
 
 				<form onSubmit={submitTask} className='sheet-form composer-form'>
-					{!isEditing ? <div className='composer-mode' role='tablist' aria-label={t('quickCreate.mode')}>
-						<button type='button' role='tab' aria-selected={!isProposing} className={!isProposing ? 'is-active' : undefined} onClick={() => setMode('create')}>{t('quickCreate.createMode')}</button>
-						<button type='button' role='tab' aria-selected={isProposing} className={isProposing ? 'is-active' : undefined} onClick={() => { setMode('propose'); setScope('Personal'); setAssignmentMode('SingleUser') }}>{t('quickCreate.proposeMode')}</button>
+					{!isEditing ? <div className='composer-mode' role='group' aria-label={t('quickCreate.mode')}>
+						<button type='button' aria-pressed={!isProposing} className={!isProposing ? 'is-active' : undefined} onClick={() => setMode('create')}>{t('quickCreate.createMode')}</button>
+						<button type='button' aria-pressed={isProposing} className={isProposing ? 'is-active' : undefined} onClick={() => { setMode('propose'); setScope('Personal'); setAssignmentMode('SingleUser') }}>{t('quickCreate.proposeMode')}</button>
 					</div> : null}
 					<label className='composer-title-field'>
 						<span>{t('quickCreate.taskTitle')}</span>
@@ -304,7 +299,6 @@ export default function QuickCreateSheet() {
 								event.currentTarget.form?.requestSubmit()
 							}}
 							enterKeyHint='done'
-							autoFocus
 						/>
 					</label>
 					<div className='composer-field-grid'>
@@ -324,7 +318,7 @@ export default function QuickCreateSheet() {
 								{t('quickCreate.startDate')}
 								<input name='startDate' value={startDate} onChange={(event) => setStartDate(event.target.value)} type='date' required />
 							</label>
-							<p className='composer-preview'>{formatSchedulePreview(recurrence, startDate, interval, t)}</p>
+							<p className='composer-preview'>{formatSchedulePreview(recurrence, startDate, interval, t, locale)}</p>
 							<label className='composer-field composer-field--full'>
 								{t('quickCreate.description')}
 								<input value={description} onChange={(event) => setDescription(event.target.value)} />
@@ -376,58 +370,11 @@ export default function QuickCreateSheet() {
 						</div>
 					) : null}
 
-					{isEditing ? <section className='composer-notification-settings' aria-labelledby='composer-notification-settings-title'>
-						<div>
-							<strong id='composer-notification-settings-title'>{t('notifications.taskSettingsTitle')}</strong>
-							<p>{t('notifications.taskSettingsDescription')}</p>
-						</div>
+					{editingTask ? <section className='composer-notification-settings' aria-label={t('notifications.taskSettingsTitle')}>
+						<h3>{t('notifications.taskSettingsTitle')}</h3>
 						{taskNotificationLoading ? <p className='empty-state'>{t('common.loading')}</p> : null}
-						{taskNotificationOverride ? <div className='composer-notification-grid'>
-							<label className='composer-field'>
-								{t('notifications.availableFrom')}
-								<select value={toOverrideSelection(taskNotificationOverride.availableFromEnabled)} onChange={(event) => updateTaskNotificationValue('availableFromEnabled', fromOverrideSelection(event.target.value))}>
-									<option value='inherit'>{t('notifications.inherit')}</option>
-									<option value='on'>{t('notifications.overrideOn')}</option>
-									<option value='off'>{t('notifications.overrideOff')}</option>
-								</select>
-							</label>
-							<label className='composer-field'>
-								{t('notifications.recommended')}
-								<select value={toOverrideSelection(taskNotificationOverride.recommendedEnabled)} onChange={(event) => updateTaskNotificationValue('recommendedEnabled', fromOverrideSelection(event.target.value))}>
-									<option value='inherit'>{t('notifications.inherit')}</option>
-									<option value='on'>{t('notifications.overrideOn')}</option>
-									<option value='off'>{t('notifications.overrideOff')}</option>
-								</select>
-							</label>
-							<label className='composer-field'>
-								{t('notifications.beforeAvailableUntil')}
-								<select value={toOverrideSelection(taskNotificationOverride.beforeAvailableUntilEnabled)} onChange={(event) => updateTaskNotificationValue('beforeAvailableUntilEnabled', fromOverrideSelection(event.target.value))}>
-									<option value='inherit'>{t('notifications.inherit')}</option>
-									<option value='on'>{t('notifications.overrideOn')}</option>
-									<option value='off'>{t('notifications.overrideOff')}</option>
-								</select>
-							</label>
-							<label className='composer-field'>
-								{t('notifications.taskExpired')}
-								<select value={toOverrideSelection(taskNotificationOverride.taskExpiredEnabled)} onChange={(event) => updateTaskNotificationValue('taskExpiredEnabled', fromOverrideSelection(event.target.value))}>
-									<option value='inherit'>{t('notifications.inherit')}</option>
-									<option value='on'>{t('notifications.overrideOn')}</option>
-									<option value='off'>{t('notifications.overrideOff')}</option>
-								</select>
-							</label>
-							<label className='composer-field'>
-								{t('notifications.taskCompleted')}
-								<select value={toOverrideSelection(taskNotificationOverride.taskCompletedEnabled)} onChange={(event) => updateTaskNotificationValue('taskCompletedEnabled', fromOverrideSelection(event.target.value))}>
-									<option value='inherit'>{t('notifications.inherit')}</option>
-									<option value='on'>{t('notifications.overrideOn')}</option>
-									<option value='off'>{t('notifications.overrideOff')}</option>
-								</select>
-							</label>
-							<label className='composer-field'>
-								{t('notifications.beforeAvailableUntilMinutes')}
-								<input type='number' min='0' max='1440' value={taskNotificationOverride.beforeAvailableUntilMinutes ?? ''} onChange={(event) => setTaskNotificationOverride({ ...taskNotificationOverride, beforeAvailableUntilMinutes: event.target.value ? Number(event.target.value) : null })} />
-							</label>
-						</div> : null}
+						{taskNotificationOverride && taskNotificationPreferences ? <TaskNotificationSettings task={{ ...editingTask, scope, schedule: editingTask.schedule ? { ...editingTask.schedule, availableFromTime: availableFromTime || null, availableUntilTime: availableUntilTime || null, recommendedTime: recommendedTime || null, timeZoneId: getBrowserTimeZone() } : null }} preferences={taskNotificationPreferences} value={taskNotificationOverride} onChange={setTaskNotificationOverride} /> : null}
+						{editingTask.createdByUserId !== currentUser?.id ? <p className='task-notification-note'>{t('taskAlerts.ownerOnly')}</p> : null}
 						{taskNotificationError ? <p className='form-error'>{taskNotificationError}</p> : null}
 					</section> : null}
 
@@ -544,14 +491,6 @@ function getBrowserTimeZone() {
 	return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
 }
 
-function toOverrideSelection(value: boolean | null) {
-	return value === null ? 'inherit' : value ? 'on' : 'off'
-}
-
-function fromOverrideSelection(value: string): boolean | null {
-	return value === 'on' ? true : value === 'off' ? false : null
-}
-
 function localDate() {
 	const date = new Date()
 	return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
@@ -565,10 +504,10 @@ function getFriendlyError(message: string | undefined, t: (key: string) => strin
 	return message && !message.includes('HTTP') && !message.includes('Request failed') ? message : t('errors.generic')
 }
 
-function formatSchedulePreview(recurrence: string, startDate: string, interval: string, t: (key: string) => string) {
+function formatSchedulePreview(recurrence: string, startDate: string, interval: string, t: (key: string) => string, locale: string) {
 	if (!startDate) return ''
 	const date = new Date(`${startDate}T12:00:00`)
-	const formatted = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'long', year: 'numeric' }).format(date)
+	const formatted = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' }).format(date)
 	const prefix = `${t('quickCreate.from')} ${formatted}`
 	if (recurrence === 'EveryNWeeks') return `${prefix}, ${t('quickCreate.everyNWeeksPreview').replace('{count}', interval || 'X')}`
 	if (recurrence === 'EveryNMonths') return `${prefix}, ${t('quickCreate.everyNMonthsPreview').replace('{count}', interval || 'X')}`

@@ -86,9 +86,9 @@ export default function InboxPage() {
 
 	return <div className='page-grid inbox-page'>
 		<section className='inbox-toolbar' aria-label={t('notifications.title')}>
-			<div className='inbox-tabs' role='tablist'>
-				<button type='button' className={!unreadOnly ? 'is-active' : undefined} aria-selected={!unreadOnly} onClick={() => setUnreadOnly(false)}>{t('notifications.all')}</button>
-				<button type='button' className={unreadOnly ? 'is-active' : undefined} aria-selected={unreadOnly} onClick={() => setUnreadOnly(true)}>{t('notifications.unread')} {unreadCount > 0 ? `(${unreadCount})` : ''}</button>
+			<div className='inbox-tabs' role='group' aria-label={t('notifications.title')}>
+				<button type='button' className={!unreadOnly ? 'is-active' : undefined} aria-pressed={!unreadOnly} onClick={() => setUnreadOnly(false)}>{t('notifications.all')}</button>
+				<button type='button' className={unreadOnly ? 'is-active' : undefined} aria-pressed={unreadOnly} onClick={() => setUnreadOnly(true)}>{t('notifications.unread')} {unreadCount > 0 ? `(${unreadCount})` : ''}</button>
 			</div>
 			<button type='button' className='link-action inbox-mark-all' onClick={() => void markAllRead()} disabled={!hasUnreadItems}>{t('inbox.markAllRead')}</button>
 		</section>
@@ -154,7 +154,7 @@ function groupByCategory(items: NotificationInboxItem[], t: (key: string) => str
 function ProposalCard({ proposal, selected, canResolve, onSelect, onResolve, t }: { proposal: TaskProposal; selected: boolean; canResolve: boolean; onSelect: () => void; onResolve: (action: 'accept' | 'reject') => void; t: (key: string) => string }) {
 	const draft = proposal.draft
 	return <article className={`proposal-card${selected ? ' is-selected' : ''}`}>
-		<button type='button' className='proposal-card__heading' onClick={onSelect}><span className='proposal-card__icon'>↗</span><span><strong>{draft.title}</strong><small>{t(`inbox.status.${proposal.status}`)}</small></span><span aria-hidden='true'>⌄</span></button>
+		<button type='button' className='proposal-card__heading' aria-expanded={selected} onClick={onSelect}><span className='proposal-card__icon' aria-hidden='true'><svg viewBox='0 0 24 24'><path d='M7 17 17 7M7 7h10v10' /></svg></span><span><strong>{draft.title}</strong><small>{t(`inbox.status.${proposal.status}`)}</small></span><span aria-hidden='true'>⌄</span></button>
 		{selected ? <div className='proposal-card__details'><p>{draft.description || t('inbox.noDescription')}</p><dl><div><dt>{t('quickCreate.scope')}</dt><dd>{draft.scope || '—'}</dd></div><div><dt>{t('quickCreate.recurrence')}</dt><dd>{draft.schedule?.recurrenceType || t('quickCreate.manual')}</dd></div><div><dt>{t('quickCreate.startDate')}</dt><dd>{draft.schedule?.startDate || '—'}</dd></div></dl>{proposal.status === 'Pending' && canResolve ? <div className='proposal-card__actions'><button type='button' className='secondary-action' onClick={() => onResolve('reject')}>{t('inbox.reject')}</button><button type='button' className='primary-action' onClick={() => onResolve('accept')}>{t('inbox.accept')}</button></div> : proposal.resultingTaskId ? <Link className='inline-link' to={`/tasks?taskId=${proposal.resultingTaskId}`}>{t('inbox.openTask')}</Link> : null}</div> : null}
 	</article>
 }

@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useI18n } from '@/i18n'
 import type { CalendarEvent, CalendarEventInput, CalendarMonthlyReport, CalendarReminderInput, CalendarReminderDue } from '@/models/calendar'
 import { CalendarService } from '@/services'
 import { useAppSelector } from '@/store/hooks'
+import { useModalFocus } from '@/hooks/useModalFocus'
 
 type ReminderDraft = CalendarReminderInput & { key: string }
 type EventDraft = {
@@ -17,7 +18,7 @@ type EventDraft = {
 }
 
 export default function CalendarPage() {
-	const { t } = useI18n()
+	const { t, locale } = useI18n()
 	const accessToken = useAppSelector((state) => state.auth.accessToken)
 	const zones = useAppSelector((state) => state.zones.items.filter((zone) => !zone.isArchived))
 	const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
@@ -32,6 +33,7 @@ export default function CalendarPage() {
 	const [error, setError] = useState('')
 
 	const cells = useMemo(() => buildMonthCells(month), [month])
+	const selectedEvents = events.filter(item => formatDateKey(new Date(item.startAtUtc)) === selectedDate)
 
 	useEffect(() => {
 		if (!accessToken) return
@@ -62,15 +64,6 @@ export default function CalendarPage() {
 		const timer = window.setInterval(loadDueReminders, 60_000)
 		return () => window.clearInterval(timer)
 	}, [accessToken, events])
-
-	useEffect(() => {
-		if (!draft) return
-		const closeOnEscape = (event: KeyboardEvent) => {
-			if (event.key === 'Escape') setDraft(null)
-		}
-		window.addEventListener('keydown', closeOnEscape)
-		return () => window.removeEventListener('keydown', closeOnEscape)
-	}, [draft])
 
 	const openNew = (dateKey = selectedDate) => {
 		const start = new Date(`${dateKey}T10:00:00`)
@@ -155,48 +148,64 @@ export default function CalendarPage() {
 	return (
 		<div className='page-grid calendar-page'>
 			<section className='calendar-header'>
-				<div><span className='eyebrow'>{t('calendar.kicker')}</span><h1>{t('calendar.title')}</h1><p>{t('calendar.subtitle')}</p></div>
+				<div><span className='eyebrow'>{t('calendar.kicker')}</span><p>{t('calendar.subtitle')}</p></div>
 				<button className='primary-action' type='button' onClick={() => openNew()}>{t('calendar.newEvent')}</button>
 			</section>
 			{dueReminders.length > 0 ? <section className='calendar-alerts' aria-label={t('calendar.remindersDue')}>
 				<strong>{t('calendar.remindersDue')}</strong>
 				{dueReminders.map((reminder) => <div className='calendar-alert' key={reminder.reminderId}><span>{reminder.eventTitle}</span><small>{formatReminderOffset(reminder.offsetMinutes, t)}</small><button type='button' onClick={() => void acknowledge(reminder.reminderId)}>{t('calendar.markDone')}</button></div>)}
 			</section> : null}
-			{error ? <div className='form-error'>{error}</div> : null}
+			{error && !draft ? <div className='form-error' role='alert'>{error}</div> : null}
 			<section className='calendar-layout'>
 				<div className='calendar-main'>
-					<div className='calendar-month-nav'><button type='button' onClick={() => shiftMonth(-1)} aria-label={t('calendar.previousMonth')}>‹</button><h2>{month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</h2><button type='button' onClick={() => shiftMonth(1)} aria-label={t('calendar.nextMonth')}>›</button></div>
+					<div className='calendar-month-nav'><button type='button' onClick={() => shiftMonth(-1)} aria-label={t('calendar.previousMonth')}>‹</button><h2 aria-live='polite'>{month.toLocaleDateString(locale, { month: 'long', year: 'numeric' })}</h2><button type='button' onClick={() => shiftMonth(1)} aria-label={t('calendar.nextMonth')}>›</button></div>
 					<div className='calendar-weekdays'>{getWeekdayLabels(t).map((label) => <span key={label}>{label}</span>)}</div>
 					<div className='calendar-grid'>{cells.map((date) => <CalendarDay key={formatDateKey(date)} date={date} currentMonth={month} selectedDate={selectedDate} events={events.filter((item) => formatDateKey(new Date(item.startAtUtc)) === formatDateKey(date))} onSelect={() => setSelectedDate(formatDateKey(date))} onCreate={() => { setSelectedDate(formatDateKey(date)); openNew(formatDateKey(date)) }} onEdit={openEdit} />)}</div>
 					{loading ? <p className='empty-state'>{t('common.loading')}</p> : null}
 				</div>
 				<div className='calendar-side'>
+					<section className='calendar-agenda' aria-labelledby='calendar-agenda-title'>
+						<header className='calendar-agenda__header'><h2 id='calendar-agenda-title'>{new Date(`${selectedDate}T12:00:00`).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}</h2><button className='icon-button' type='button' onClick={() => openNew()} aria-label={t('calendar.newEvent')}><svg viewBox='0 0 24 24' aria-hidden='true'><path d='M12 5v14M5 12h14' /></svg></button></header>
+						{selectedEvents.length === 0 ? <p className='calendar-agenda__empty'>{t('calendar.noEvents')}</p> : selectedEvents.map(item => <button className={`calendar-agenda__event${item.isCancelled ? ' is-cancelled' : ''}`} key={item.id} type='button' onClick={() => openEdit(item)}><span>{item.isAllDay ? t('calendar.allDay') : new Date(item.startAtUtc).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}</span><div><strong>{item.title}</strong>{item.zoneName || item.description ? <small>{item.zoneName ?? item.description}</small> : null}</div></button>)}
+					</section>
 					{report ? <section className='calendar-report'><span className='eyebrow'>{t('calendar.monthlyReport')}</span><div className='calendar-report__grid'><strong>{report.activeEvents}<small>{t('calendar.activeEvents')}</small></strong><strong>{report.totalEvents}<small>{t('calendar.totalEvents')}</small></strong><strong>{report.enabledReminders}<small>{t('calendar.reminders')}</small></strong><strong>{report.acknowledgedReminders}<small>{t('calendar.markedReminders')}</small></strong></div></section> : null}
-					<section className='calendar-empty-editor'><span className='eyebrow'>{selectedDate}</span><h2>{t('calendar.selectEvent')}</h2><p>{t('calendar.selectEventDescription')}</p><button className='secondary-action' type='button' onClick={() => openNew()}>{t('calendar.newEvent')}</button></section>
 				</div>
 			</section>
-			{draft ? <div className='calendar-modal-backdrop' role='presentation' onMouseDown={() => setDraft(null)}>
-				<div className='calendar-modal' role='dialog' aria-modal='true' aria-labelledby='calendar-editor-title' onMouseDown={(event) => event.stopPropagation()}>
-					<EventEditor draft={draft} zones={zones} saving={saving} editing={Boolean(editingId)} onChange={setDraft} onSubmit={save} onDelete={editingId ? remove : undefined} onCancel={() => setDraft(null)} />
-				</div>
-			</div> : null}
+			{draft ? <EventDialog draft={draft} zones={zones} saving={saving} error={error} editing={Boolean(editingId)} onChange={setDraft} onSubmit={save} onDelete={editingId ? remove : undefined} onCancel={() => { if (!saving) setDraft(null) }} /> : null}
 		</div>
 	)
 	}
 
 function CalendarDay({ date, currentMonth, selectedDate, events, onSelect, onCreate, onEdit }: { date: Date; currentMonth: Date; selectedDate: string; events: CalendarEvent[]; onSelect: () => void; onCreate: () => void; onEdit: (event: CalendarEvent) => void }) {
+	const { t, locale } = useI18n()
 	const dateKey = formatDateKey(date)
-	return <article className={`calendar-day${dateKey === selectedDate ? ' is-selected' : ''}${date.getMonth() !== currentMonth.getMonth() ? ' is-muted' : ''}`} role='button' tabIndex={0} aria-selected={dateKey === selectedDate} aria-label={dateKey} onClick={onSelect} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect() } }}>
-		<header><strong>{date.getDate()}</strong><button type='button' onClick={(event) => { event.stopPropagation(); onCreate() }} aria-label={`Create event ${dateKey}`}>+</button></header>
-		<div>{events.map((calendarEvent) => <button className={`calendar-event${calendarEvent.isCancelled ? ' is-cancelled' : ''}`} key={calendarEvent.id} type='button' onClick={(event) => { event.stopPropagation(); onEdit(calendarEvent) }}><span>{calendarEvent.isAllDay ? '•' : new Date(calendarEvent.startAtUtc).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>{calendarEvent.title}</button>)}</div>
+	const isToday = dateKey === formatDateKey(new Date())
+	const label = date.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+	return <article className={`calendar-day${dateKey === selectedDate ? ' is-selected' : ''}${date.getMonth() !== currentMonth.getMonth() ? ' is-muted' : ''}${isToday ? ' is-today' : ''}`}>
+		<button className='calendar-day__select' type='button' aria-pressed={dateKey === selectedDate} aria-current={isToday ? 'date' : undefined} aria-label={`${label}, ${t('calendar.eventCount').replace('{count}', String(events.length))}`} onClick={onSelect}><span className='calendar-day__number'>{date.getDate()}</span><span className='calendar-day__dots' aria-hidden='true'>{events.slice(0, 3).map(item => <i key={item.id} />)}</span></button>
+		<button className='calendar-day__create' type='button' onClick={onCreate} aria-label={`${t('calendar.newEvent')}: ${label}`}><svg viewBox='0 0 24 24' aria-hidden='true'><path d='M12 5v14M5 12h14' /></svg></button>
+		<div className='calendar-day__events'>{events.map(calendarEvent => <button className={`calendar-event${calendarEvent.isCancelled ? ' is-cancelled' : ''}`} key={calendarEvent.id} type='button' onClick={() => onEdit(calendarEvent)}><span>{calendarEvent.isAllDay ? t('calendar.allDay') : new Date(calendarEvent.startAtUtc).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}</span>{calendarEvent.title}</button>)}</div>
 	</article>
 }
 
-function EventEditor({ draft, zones, saving, editing, onChange, onSubmit, onDelete, onCancel }: { draft: EventDraft; zones: { id: string; name: string }[]; saving: boolean; editing: boolean; onChange: (draft: EventDraft) => void; onSubmit: (event: FormEvent) => void; onDelete?: () => void; onCancel: () => void }) {
+type EventEditorProps = { draft: EventDraft; zones: { id: string; name: string }[]; saving: boolean; error: string; editing: boolean; onChange: (draft: EventDraft) => void; onSubmit: (event: FormEvent) => void; onDelete?: () => void; onCancel: () => void }
+
+function EventDialog(props: EventEditorProps) {
+	const ref = useRef<HTMLDivElement>(null)
+	useModalFocus(ref, props.onCancel)
+	return <div className='calendar-modal-backdrop' role='presentation' onMouseDown={event => { if (event.target === event.currentTarget) props.onCancel() }}><div ref={ref} className='calendar-modal' tabIndex={-1} role='dialog' aria-modal='true' aria-labelledby='calendar-editor-title'><EventEditor {...props} /></div></div>
+}
+
+function EventEditor({ draft, zones, saving, error, editing, onChange, onSubmit, onDelete, onCancel }: EventEditorProps) {
 	const { t } = useI18n()
+	const errorRef = useRef<HTMLDivElement>(null)
+	useEffect(() => {
+		if (error) errorRef.current?.focus()
+	}, [error])
 	const update = <K extends keyof EventDraft>(key: K, value: EventDraft[K]) => onChange({ ...draft, [key]: value })
 	return <form className='calendar-editor' onSubmit={onSubmit}>
 		<div className='calendar-editor__heading'><div><span className='eyebrow'>{editing ? t('calendar.editEvent') : t('calendar.newEvent')}</span><h2 id='calendar-editor-title'>{t('calendar.eventDetails')}</h2></div><button type='button' className='icon-button' onClick={onCancel} aria-label={t('common.close')}>×</button></div>
+		{error ? <div className='form-error' ref={errorRef} tabIndex={-1} role='alert'>{error}</div> : null}
 		<label>{t('calendar.eventTitle')}<input value={draft.title} onChange={(event) => update('title', event.target.value)} maxLength={220} required /></label>
 		<label>{t('calendar.description')}<textarea value={draft.description} onChange={(event) => update('description', event.target.value)} rows={3} maxLength={2000} /></label>
 		<label>{t('calendar.zone')}<select value={draft.zoneId ?? ''} onChange={(event) => update('zoneId', event.target.value || null)}><option value=''>{t('calendar.noZone')}</option>{zones.map((zone) => <option key={zone.id} value={zone.id}>{zone.name}</option>)}</select></label>

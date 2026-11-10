@@ -1,11 +1,13 @@
 import './App.scss'
 import { Outlet } from 'react-router-dom'
-import type { CSSProperties } from 'react'
+import { useEffect, type CSSProperties } from 'react'
 import { ToastProvider } from '@/components/Toasts/ToastProvider'
 import { useAppSelector } from '@/store/hooks'
+import { translate } from '@/i18n'
 
 function App() {
 	const theme = useAppSelector((state) => state.theme)
+	useEffect(() => { document.documentElement.lang = theme.locale }, [theme.locale])
 
 	return (
 		<div
@@ -21,7 +23,7 @@ function App() {
 				'--app-background-overlay-opacity': theme.backgroundOverlayOpacity,
 			} as CSSProperties}
 		>
-			<ToastProvider>
+			<ToastProvider regionLabel={translate(theme.locale, 'toasts.regionLabel')} dismissLabel={translate(theme.locale, 'toasts.dismiss')}>
 				<Outlet />
 			</ToastProvider>
 		</div>

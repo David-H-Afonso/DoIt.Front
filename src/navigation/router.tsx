@@ -1,4 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom'
+import { lazy } from 'react'
 import App from '@/App'
 import AppShell from '@/components/AppShell/AppShell'
 import LoginPage from '@/components/Auth/LoginPage'
@@ -9,10 +10,11 @@ import ProfilePage from '@/components/Profile/ProfilePage'
 import ReviewPage from '@/components/Review/ReviewPage'
 import ZoneDetailPage from '@/components/Zones/ZoneDetailPage'
 import ZonesPage from '@/components/Zones/ZonesPage'
-import StatisticsPage from '@/components/Statistics/StatisticsPage'
-import CalendarPage from '@/components/Calendar/CalendarPage'
 import HouseholdAuthorizePage from '@/components/Integrations/HouseholdAuthorizePage'
 import InboxPage from '@/components/Inbox/InboxPage'
+
+const CalendarPage = lazy(() => import('@/components/Calendar/CalendarPage'))
+const StatisticsPage = lazy(() => import('@/components/Statistics/StatisticsPage'))
 
 export const router = createBrowserRouter([
 	{

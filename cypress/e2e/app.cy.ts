@@ -32,6 +32,8 @@ describe('DoIt foundation', () => {
 			importance: 'Normal',
 			complexity: 'Easy',
 			obligation: 'Required',
+			assignmentMode: 'SingleUser',
+			assigneeIds: ['user-1'],
 			isArchived: false,
 			createdByUserId: 'user-1',
 			createdAt: '2026-07-11T10:00:00Z',
@@ -47,11 +49,13 @@ describe('DoIt foundation', () => {
 				availableFromTime: null,
 				availableUntilTime: null,
 				recommendedTime: null,
+				timeZoneId: 'Europe/Madrid',
 				unavailableVisibilityMode: 'Dimmed',
 				createdAt: '2026-07-11T10:00:00Z',
 				updatedAt: '2026-07-11T10:00:00Z',
 			},
 		}
+		let occurrenceStatus: 'Pending' | 'Done' | 'Missed' = 'Pending'
 		let nowBody = {
 			date: '2026-07-11',
 			scope: 'me',
@@ -72,19 +76,30 @@ describe('DoIt foundation', () => {
 			},
 			accessToken: 'access-token',
 			refreshToken: 'refresh-token',
-			accessTokenExpiresAt: '2027-07-11T10:15:00Z',
-			refreshTokenExpiresAt: '2027-07-11T10:00:00Z',
+			accessTokenExpiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+			refreshTokenExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
 		}).as('register')
 		cy.intercept('GET', '/api/zones', []).as('listZones')
 		cy.intercept('GET', '/api/tasks', []).as('listTasks')
 		cy.intercept('GET', '/api/users', []).as('listUsers')
+		cy.intercept('GET', '/api/notifications/inbox', [])
+		cy.intercept('GET', '/api/tasks/proposals', [])
 		cy.intercept('GET', '/api/xp/me', { totalXp: 0, weeklyXp: 0, currentLevel: 1, currentLevelXp: 0, nextLevelXp: 100, progressToNextLevel: 0 }).as('getXp')
 		cy.intercept('GET', '/api/theme/me', { themeMode: 'system', primaryColor: '#0a84ff', accentColor: '#34c759', backgroundColor: '#f7f4ee', surfaceColor: '#fffdf9', textColor: '#1d1d1f', backgroundImagePath: null, backgroundOverlayColor: '#f7f4ee', backgroundOverlayOpacity: 0.92 }).as('getTheme')
-		cy.intercept('GET', '/api/now*', (request) => request.reply(nowBody)).as('getNow')
+		cy.intercept('GET', '/api/now*', (request) => request.reply(occurrenceStatus === 'Pending' ? nowBody : { ...nowBody, zones: [], progress: { total: 1, done: Number(occurrenceStatus === 'Done'), missed: Number(occurrenceStatus === 'Missed'), notApplicable: 0, pending: 0 } })).as('getNow')
 		cy.intercept('POST', '/api/zones', zone).as('createZone')
-		cy.intercept('POST', '/api/occurrences/occ-dishes/complete', { occurrenceId: 'occ-dishes', taskId: task.id, date: '2026-07-11', status: 'Done' }).as('completeTask')
-		cy.intercept('POST', '/api/occurrences/occ-dishes/miss', { occurrenceId: 'occ-dishes', taskId: task.id, date: '2026-07-11', status: 'Missed' }).as('missTask')
-		cy.intercept('POST', '/api/occurrences/occ-dishes/undo', { occurrenceId: 'occ-dishes', taskId: task.id, date: '2026-07-11', status: 'Pending' }).as('undoTask')
+		cy.intercept('POST', '/api/occurrences/occ-dishes/complete', (request) => {
+			occurrenceStatus = 'Done'
+			request.reply({ occurrenceId: 'occ-dishes', taskId: task.id, date: '2026-07-11', status: 'Done' })
+		}).as('completeTask')
+		cy.intercept('POST', '/api/occurrences/occ-dishes/miss', (request) => {
+			occurrenceStatus = 'Missed'
+			request.reply({ occurrenceId: 'occ-dishes', taskId: task.id, date: '2026-07-11', status: 'Missed' })
+		}).as('missTask')
+		cy.intercept('POST', '/api/occurrences/occ-dishes/undo', (request) => {
+			occurrenceStatus = 'Pending'
+			request.reply({ occurrenceId: 'occ-dishes', taskId: task.id, date: '2026-07-11', status: 'Pending' })
+		}).as('undoTask')
 		cy.intercept('POST', '/api/tasks', (request) => {
 			nowBody = {
 				date: '2026-07-11',

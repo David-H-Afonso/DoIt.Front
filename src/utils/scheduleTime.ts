@@ -31,15 +31,15 @@ export function formatScheduleTime(value: string | null | undefined, sourceTimeZ
 	return new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(instant))
 }
 
-export function formatInstant(value: string | null | undefined, timeZone?: string | null) {
+export function formatInstant(value: string | null | undefined, timeZone?: string | null, locale?: string, compact = false) {
 	if (!value) return ''
 	const normalized = value.trim()
 	const hasTimeZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(normalized)
 	const date = new Date(hasTimeZone ? normalized : `${normalized}Z`)
 	if (Number.isNaN(date.getTime())) return ''
-	return new Intl.DateTimeFormat(undefined, {
-		dateStyle: 'medium',
-		timeStyle: 'medium',
+	return new Intl.DateTimeFormat(locale, {
+		dateStyle: compact ? 'short' : 'medium',
+		timeStyle: compact ? 'short' : 'medium',
 		timeZone: timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
 	}).format(date)
 }

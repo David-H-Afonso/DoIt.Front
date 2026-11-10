@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useI18n } from '@/i18n'
 import type { NowProgress, NowTask, NowZone, OccurrenceAction } from '@/models/now'
@@ -37,7 +37,7 @@ export default function NowPage() {
 			<section className='now-focus' aria-label={t('now.progressLabel')}>
 				<div>
 					<span className='eyebrow'>{t('now.today')}</span>
-					<h1>{formatDate(currentDate)}</h1>
+					<h2>{formatDate(currentDate)}</h2>
 				</div>
 				<div className='now-focus__count'>
 					<strong>{loading ? '—' : actionablePending}</strong>
@@ -61,7 +61,7 @@ export function NowZoneSection({ zone, showOpenLink = true, showCompleted = fals
 	const target = zone.zoneId ? `/zones/${zone.zoneId}` : '/zones'
 
 	return (
-		<section className='zone-panel' aria-labelledby={`zone-${zone.zoneId ?? 'general'}`}>
+		<section className='zone-panel' aria-labelledby={showHeader ? `zone-${zone.zoneId ?? 'general'}` : undefined} aria-label={showHeader ? undefined : zone.zoneName}>
 			{showHeader ? <header className='zone-panel__header'>
 				<div>
 					<h2 id={`zone-${zone.zoneId ?? 'general'}`}>{zone.zoneName}</h2>
@@ -107,12 +107,46 @@ export function NowTaskCard({ task, tone }: { task: NowTask; tone: NowTask['stat
 	const zones = useAppSelector((state) => state.now.zones)
 	const progress = useAppSelector((state) => state.now.progress)
  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
- const [snoozeOpen, setSnoozeOpen] = useState(false)
+  const [snoozeOpen, setSnoozeOpen] = useState(false)
+	const snoozeId = useId()
+	const snoozeMenuRef = useRef<HTMLDivElement>(null)
+	const snoozeTriggerRef = useRef<HTMLButtonElement>(null)
 	const timeLabel = getTimeLabel(task, t)
 	const isCompleted = tone === 'completed'
 	const isFuture = tone === 'unavailable' || tone === 'upcoming'
 	const isSnoozed = Boolean(task.snoozedUntilUtc)
 	const canUndo = isCompleted && Boolean(currentUser && (task.completedByUserId === currentUser.id || currentUser.role === 'Admin' && task.scope === 'House'))
+
+	useEffect(() => {
+		if (!snoozeOpen) return
+		const menu = snoozeMenuRef.current!
+		menu.querySelector('button')?.focus()
+		const dismiss = (event: PointerEvent | FocusEvent) => {
+			if (event.target instanceof Node && !menu.contains(event.target) && !snoozeTriggerRef.current?.contains(event.target)) setSnoozeOpen(false)
+		}
+		const navigate = (event: KeyboardEvent) => {
+			if (event.key === 'Escape') {
+				event.preventDefault()
+				setSnoozeOpen(false)
+				snoozeTriggerRef.current?.focus()
+				return
+			}
+			if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return
+			event.preventDefault()
+			const items = [...menu.querySelectorAll('button')]
+			const index = items.indexOf(document.activeElement as HTMLButtonElement)
+			const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length
+			items[next]?.focus()
+		}
+		document.addEventListener('pointerdown', dismiss)
+		document.addEventListener('focusin', dismiss)
+		menu.addEventListener('keydown', navigate)
+		return () => {
+			document.removeEventListener('pointerdown', dismiss)
+			document.removeEventListener('focusin', dismiss)
+			menu.removeEventListener('keydown', navigate)
+		}
+	}, [snoozeOpen])
 
 	const applyAction = async (action: OccurrenceAction) => {
 			if (!accessToken || pendingAction) {
@@ -225,9 +259,9 @@ export function NowTaskCard({ task, tone }: { task: NowTask; tone: NowTask['stat
 					{task.recurrenceType === 'TimesPerWeek' ? t('now.notToday') : t('now.notApplicable')}
 				</button>
 				<div className='snooze-menu'>
-					<button className='secondary-action task-action task-action--compact' type='button' disabled={pendingAction !== null} onClick={() => setSnoozeOpen((open) => !open)}>{t('now.snooze')}</button>
-					{snoozeOpen ? <div className='snooze-menu__options'>
-						{(['1h', '6h', '12h', '24h', 'tomorrow'] as const).map((duration) => <button key={duration} type='button' onClick={() => void snooze(duration)}>{t(`now.snoozeOptions.${duration}`)}</button>)}
+					<button ref={snoozeTriggerRef} className='secondary-action task-action task-action--compact' type='button' disabled={pendingAction !== null} aria-haspopup='menu' aria-expanded={snoozeOpen} aria-controls={snoozeOpen ? snoozeId : undefined} onClick={() => setSnoozeOpen((open) => !open)}>{t('now.snooze')}</button>
+					{snoozeOpen ? <div className='snooze-menu__options' id={snoozeId} ref={snoozeMenuRef} role='menu' aria-label={t('now.snooze')}>
+						{(['1h', '6h', '12h', '24h', 'tomorrow'] as const).map((duration) => <button key={duration} type='button' role='menuitem' onClick={() => void snooze(duration)}>{t(`now.snoozeOptions.${duration}`)}</button>)}
 					</div> : null}
 				</div>
 			</div>}

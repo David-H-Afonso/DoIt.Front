@@ -28,7 +28,7 @@ export default function ReviewPage() {
 	return (
 		<div className='page-grid review-page'>
 			<section className='review-header'>
-				<h1>{formatDate(date)}</h1>
+				<h2>{formatDate(date)}</h2>
 				<div className='review-date-controls'>
 					<button type='button' onClick={() => moveDate(-1)} aria-label={t('review.previous')}>‹</button>
 					<input aria-label={t('review.selectDate')} type='date' value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} />

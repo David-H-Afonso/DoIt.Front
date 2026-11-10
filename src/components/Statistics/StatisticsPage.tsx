@@ -32,7 +32,7 @@ export default function StatisticsPage() {
 			<section className='statistics-header'>
 				<div className='statistics-controls'>
 					{(['day', 'week', 'month'] as Period[]).map((option) => (
-						<button key={option} type='button' className={period === option ? 'is-active' : undefined} onClick={() => setPeriod(option)}>{t(`statistics.period.${option}`)}</button>
+						<button key={option} type='button' aria-pressed={period === option} className={period === option ? 'is-active' : undefined} onClick={() => setPeriod(option)}>{t(`statistics.period.${option}`)}</button>
 					))}
 				</div>
 			</section>
@@ -40,7 +40,7 @@ export default function StatisticsPage() {
 			<div className='statistics-view-controls'>
 				<span>{t('statistics.groupBy')}</span>
 				{(['day', 'week', 'month'] as Period[]).map((option) => (
-					<button key={option} type='button' className={groupBy === option ? 'is-active' : undefined} onClick={() => setGroupBy(option)}>{t(`statistics.period.${option}`)}</button>
+					<button key={option} type='button' aria-pressed={groupBy === option} className={groupBy === option ? 'is-active' : undefined} onClick={() => setGroupBy(option)}>{t(`statistics.period.${option}`)}</button>
 				))}
 			</div>
 

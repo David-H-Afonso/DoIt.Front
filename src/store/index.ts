@@ -12,6 +12,7 @@ import { usersReducer } from './features/users/usersSlice'
 import { xpReducer } from './features/xp/xpSlice'
 import { zonesReducer } from './features/zones/zonesSlice'
 import { notificationsReducer } from './features/notifications/notificationsSlice'
+import { taskNotificationsReducer } from './features/taskNotifications/taskNotificationsSlice'
 import { proposalsReducer } from './features/proposals/proposalsSlice'
 import { setUnauthorizedHandler } from '@/services/httpClient'
 
@@ -32,6 +33,7 @@ const combinedReducer = combineReducers({
 	xp: xpReducer,
 	zones: zonesReducer,
 	notifications: notificationsReducer,
+	taskNotifications: taskNotificationsReducer,
 	proposals: proposalsReducer,
 })
 

@@ -3,6 +3,7 @@ import { createContext } from 'react'
 export type ToastType = 'success' | 'error' | 'info' | 'warning'
 
 export type ToastInput = {
+	groupKey?: string
 	type?: ToastType
 	title: string
 	description?: string

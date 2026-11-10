@@ -35,8 +35,8 @@ describe('DoIt design review captures', () => {
 		user,
 		accessToken: 'access-token',
 		refreshToken: 'refresh-token',
-		accessTokenExpiresAt: '2027-07-12T10:15:00Z',
-		refreshTokenExpiresAt: '2027-07-12T10:00:00Z',
+		accessTokenExpiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+		refreshTokenExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
 	}
 
 	const now = {
@@ -72,6 +72,13 @@ describe('DoIt design review captures', () => {
 			{ id: 'task-epic', title: 'Epic Games Store', description: null, zoneId: null, zoneName: null, scope: 'Personal', taskType: 'Routine', importance: 'Normal', complexity: 'Easy', obligation: 'Required', assignmentMode: 'SingleUser', assigneeIds: ['user-1'], isArchived: false, createdByUserId: 'user-1', createdAt: '2026-07-11T10:00:00Z', updatedAt: '2026-07-11T10:00:00Z', occurrenceStatus: null, occurrenceDate: null, schedule: { id: 'schedule-epic', recurrenceType: 'Weekday', startDate: '2026-07-11', endDate: null, weekday: 4, timesPerWeek: null, everyNDays: null, availableFromTime: null, availableUntilTime: null, recommendedTime: '16:00:00', timeZoneId: 'Europe/Madrid', unavailableVisibilityMode: 'Dimmed', createdAt: '2026-07-11T10:00:00Z', updatedAt: '2026-07-11T10:00:00Z' } },
 		])
 		cy.intercept('GET', '/api/users', [user])
+		cy.intercept('GET', '/api/users/active', [user])
+		cy.intercept('GET', '/api/notifications/inbox', [])
+		cy.intercept('GET', '/api/tasks/proposals', [])
+		const preferences = { availableFromEnabled: true, recommendedEnabled: true, beforeAvailableUntilEnabled: true, taskExpiredEnabled: false, taskCompletedEnabled: true, beforeAvailableUntilMinutes: 30 }
+		cy.intercept('GET', '/api/notifications/config', { enabled: false, publicKey: null })
+		cy.intercept('GET', '/api/notifications/preferences', preferences)
+		cy.intercept('GET', '/api/notifications/tasks', { preferences, tasks: [] })
 		cy.intercept('GET', '/api/backups/users', [])
 		cy.intercept('GET', '/api/xp/me', { totalXp: 240, weeklyXp: 55, currentLevel: 2, currentLevelXp: 100, nextLevelXp: 400, progressToNextLevel: 140 })
 		cy.intercept('GET', '/api/theme/me', { themeMode: 'light', primaryColor: '#6d5df6', accentColor: '#16a34a', backgroundColor: '#f6efe6', surfaceColor: '#fffaf4', textColor: '#1f2937', backgroundImagePath: null, backgroundOverlayColor: '#f6efe6', backgroundOverlayOpacity: 0.78 })

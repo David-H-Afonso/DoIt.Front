@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { ToastContext, type Toast, type ToastInput } from './toastContext'
 
-export function ToastProvider({ children }: { children: ReactNode }) {
+export function ToastProvider({ children, regionLabel = 'Notifications', dismissLabel = 'Dismiss notification' }: { children: ReactNode; regionLabel?: string; dismissLabel?: string }) {
 	const [toasts, setToasts] = useState<Toast[]>([])
 
 	const dismissToast = useCallback((id: string) => {
@@ -12,7 +12,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 		(input: ToastInput) => {
 			const id = crypto.randomUUID()
 			const toast: Toast = { ...input, id, type: input.type ?? 'info' }
-			setToasts((current) => [toast, ...current].slice(0, 3))
+			setToasts((current) => [toast, ...current.filter((item) => !input.groupKey || item.groupKey !== input.groupKey)].slice(0, 3))
 
 			if (input.durationMs !== 0) {
 				window.setTimeout(() => dismissToast(id), input.durationMs ?? 4000)
@@ -26,7 +26,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 	return (
 		<ToastContext.Provider value={value}>
 			{children}
-			<div className='toast-viewport' aria-live='polite' aria-label='Notifications'>
+			<div className='toast-viewport' role='region' aria-live='polite' aria-label={regionLabel}>
 				{toasts.map((toast) => (
 					<div className={`toast toast--${toast.type}`} key={toast.id} role='status'>
 						<div className='toast__icon' aria-hidden='true' />
@@ -42,7 +42,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 							{toast.actionLabel}
 						</button>
 					) : null}
-						<button className='toast__close' type='button' aria-label='Dismiss notification' onClick={() => dismissToast(toast.id)}>
+						<button className='toast__close' type='button' aria-label={dismissLabel} onClick={() => dismissToast(toast.id)}>
 							×
 						</button>
 						<div className='toast__progress' />
