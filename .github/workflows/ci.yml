@@ -23,8 +23,10 @@ jobs:
           node-version: '22'
           cache: npm
 
-      - name: Install
-        run: npm install --package-lock=false --include=optional --no-audit --no-fund
+      - name: Install locked dependencies
+        run: npm ci --include=optional --no-audit --no-fund
+        env:
+          CYPRESS_INSTALL_BINARY: '0'
 
       - name: Lint
         run: npm run lint

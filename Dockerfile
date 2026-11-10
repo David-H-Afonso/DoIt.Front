@@ -4,7 +4,7 @@ WORKDIR /app
 RUN apk add --no-cache python3 make g++
 
 COPY package.json package-lock.json ./
-RUN npm ci --include=optional --no-audit --no-fund
+RUN CYPRESS_INSTALL_BINARY=0 npm ci --include=optional --no-audit --no-fund
 
 COPY . ./
 RUN npm run build

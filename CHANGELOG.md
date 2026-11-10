@@ -19,6 +19,10 @@
 - Protect task mutations against duplicate requests and stale inventory reads; synchronize Now and XP, and distinguish failed writes from successful writes followed by failed refreshes.
 - Preserve one-off automatic archival with Undo from both feedback and the Archived view.
 
+### Fixed
+
+- Install the committed lockfile with `npm ci` in CI instead of resolving a fresh dependency tree with `--package-lock=false`, avoiding npm 10's Arborist `edgesOut` crash. CI and Docker builds skip the unused Cypress browser download without skipping lifecycle scripts or unit tests.
+
 ### Compatibility
 
 - Deploy with DoIt.Api `0.6.0` for the notification collection and atomic batch endpoints.

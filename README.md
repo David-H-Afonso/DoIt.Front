@@ -7,7 +7,7 @@ See [CHANGELOG.md](CHANGELOG.md) for this minor version's task controls and app-
 ## Commands
 
 ```powershell
-npm install
+npm ci --include=optional
 npm run dev
 npm run build
 npm run lint
@@ -21,6 +21,13 @@ npm run cypress:run
 - Use Vitest for unit/integration tests.
 - Use Cypress for E2E tests.
 - Keep visible text ready for i18n.
+
+## Dependency installation
+
+- Commit `package-lock.json` and use `npm ci --include=optional` for a clean, reproducible installation. Do not bypass the lockfile with
+  `--package-lock=false`: fresh peer-dependency resolution can hit npm 10's Arborist `edgesOut` crash even when the locked installation works.
+- The lint/unit-test/build CI job and Docker build skip the unused Cypress browser download with `CYPRESS_INSTALL_BINARY=0`. This does not
+  disable npm lifecycle scripts or skip Vitest tests. Local Cypress runs still need its browser binary (installed normally by `npm ci`, or with `npx cypress install`).
 
 ## Shared mobile-first workspace
 
